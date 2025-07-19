@@ -685,6 +685,19 @@ Este pipeline demuestra:
 
 **💡 Este es exactamente el tipo de pipeline que esperan las empresas en proyectos MLOps profesionales.**
 
+### 🎓 **Para Estudiantes: Guía Completa del CI/CD**
+
+¿Quieres entender exactamente cómo funciona este pipeline y experimentar con él?
+
+👉 **[Guía del Estudiante: Usando GitHub Actions CI/CD](DOCS/ESTUDIANTE_CICD_GUIDE.md)**
+
+Esta guía te enseña:
+- 👀 Cómo ver el pipeline en acción
+- 🧪 Cómo experimentar sin romper nada
+- 📊 Qué significan las métricas
+- 🔧 Cómo customizar para tu proyecto
+- 💼 Por qué esto es valioso en la industria
+
 ## �📝 **License**
 
 Este proyecto está bajo la licencia MIT. Ver [LICENSE](LICENSE) para más detalles.
