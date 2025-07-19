@@ -101,10 +101,16 @@
 
 **🤖 Model Validation:**
 ```python
-# Demo automático con 3 algoritmos
-RandomForestRegressor → RMSE validation
+# Demo automático con threshold realista
+RandomForestRegressor → RMSE validation (< 8 min)
 XGBoostRegressor → Performance thresholds
 LinearRegression → Baseline comparison
+
+# Threshold empresarial implementado:
+if rmse < 480:  # 480 segundos = 8 minutos máximo error
+    deploy_model()  # ✅ Modelo aceptable para taxis
+else:
+    block_deployment()  # ❌ Error muy alto, rechazar
 ```
 
 **🐳 Containerization:**
@@ -142,6 +148,7 @@ LinearRegression → Baseline comparison
 
 **📊 Capacidades Demostradas:**
 - **Automated ML validation** → 3 algoritmos comparados automáticamente
+- **Business thresholds** → RMSE < 8 min (threshold realista de negocio)
 - **Professional deployment** → Docker + health checks
 - **Real versioning** → Tags semánticos (v1.0.0-demo)
 - **Production monitoring** → MLflow + Streamlit dashboard

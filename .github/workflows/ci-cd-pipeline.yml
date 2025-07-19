@@ -103,7 +103,7 @@ jobs:
         print(f'   RMSE: {rmse:.1f} seconds ({rmse/60:.1f} minutes)')
         print(f'   Predictions range: {predictions.min():.0f}-{predictions.max():.0f} seconds')
 
-        if rmse < 3600:  # Very lenient threshold
+        if rmse < 480:  # 8 minutes threshold (realistic for taxi duration)
             print('✅ Demo model validation PASSED')
         else:
             print('❌ Demo model validation FAILED')
