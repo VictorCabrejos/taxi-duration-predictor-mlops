@@ -9,16 +9,13 @@ on:
       release_type:
         description: 'Type of release'
         required: true
-        default: 'patch'
+        default: 'demo'
         type: choice
         options:
+        - demo
         - patch
         - minor
         - major
-
-env:
-  DOCKER_REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
   # ============================================================================
@@ -34,8 +31,6 @@ jobs:
     steps:
     - name: 📥 Checkout code
       uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
 
     - name: 🏷️ Generate demo version
       id: version
@@ -56,91 +51,33 @@ jobs:
       run: |
         VERSION="${{ steps.version.outputs.version }}"
 
-        cat << EOF > DEMO_CHANGELOG.md
-        ## 🚀 Taxi Duration Predictor $VERSION
-
-        ### ✨ Features & Improvements
-        - 🆕 Complete MLOps pipeline with CI/CD
-        - 📊 Streamlit dashboard with 5 interactive views
-        - 🤖 MLflow experiment tracking and model registry
-        - 🐳 Docker containerization for all services
-        - 🏗️ Hexagonal architecture with DDD principles
-        - 📈 Real-time model monitoring and validation
-
-        ### 🛠️ Technical Stack
-        - **Backend**: FastAPI with automatic OpenAPI documentation
-        - **Frontend**: Streamlit with interactive visualizations
-        - **ML Tracking**: MLflow with SQLite backend
-        - **Database**: PostgreSQL for production data
-        - **Containerization**: Docker Compose orchestration
-        - **CI/CD**: GitHub Actions with automated testing
-
-        ### 📊 Model Performance
-        - **Algorithm**: RandomForest Regressor (best performer)
-        - **RMSE**: ~6.6 minutes average prediction error
-        - **Dataset**: 49,719 NYC taxi trips with engineered features
-        - **Features**: 9 optimized predictors including distance and temporal patterns
-
-        ### 🚀 Quick Start
-        \`\`\`bash
-        git clone https://github.com/${{ github.repository }}.git
-        cd taxi-duration-predictor-mlops
-        cp .env.docker .env
-        docker-compose up -d
-        # Access at http://localhost:8501 (Dashboard) and http://localhost:8000/docs (API)
-        \`\`\`
-
-        ### 🎓 Educational Value
-        This project demonstrates:
-        - End-to-end MLOps lifecycle management
-        - Professional software architecture patterns
-        - DevOps automation and best practices
-        - Real-world machine learning deployment strategies
-
-        ### 🔗 Resources
-        - 📖 [Complete Documentation](https://github.com/${{ github.repository }}/tree/main/DOCS)
-        - 🎥 [Architecture Overview](https://github.com/${{ github.repository }}/blob/main/DOCS/HEXAGONAL_ARCHITECTURE.md)
-        - 🚀 [CI/CD Pipeline Guide](https://github.com/${{ github.repository }}/blob/main/DOCS/CICD_PIPELINE.md)
-        - 🎓 [Student Guide](https://github.com/${{ github.repository }}/blob/main/DOCS/ESTUDIANTE_CICD_GUIDE.md)
-        EOF
+        echo "## 🚀 Taxi Duration Predictor $VERSION" > DEMO_CHANGELOG.md
+        echo "" >> DEMO_CHANGELOG.md
+        echo "### ✨ Demo Features" >> DEMO_CHANGELOG.md
+        echo "- 🆕 Complete MLOps pipeline demonstration" >> DEMO_CHANGELOG.md
+        echo "- 📊 Interactive Streamlit dashboard" >> DEMO_CHANGELOG.md
+        echo "- 🤖 MLflow experiment tracking" >> DEMO_CHANGELOG.md
+        echo "- 🐳 Docker containerization" >> DEMO_CHANGELOG.md
+        echo "- 🏗️ Hexagonal architecture with DDD" >> DEMO_CHANGELOG.md
+        echo "- 🔄 GitHub Actions CI/CD pipeline" >> DEMO_CHANGELOG.md
+        echo "" >> DEMO_CHANGELOG.md
+        echo "### 🎓 Educational Value" >> DEMO_CHANGELOG.md
+        echo "This release demonstrates enterprise-grade MLOps practices:" >> DEMO_CHANGELOG.md
+        echo "- End-to-end machine learning lifecycle" >> DEMO_CHANGELOG.md
+        echo "- Professional software architecture" >> DEMO_CHANGELOG.md
+        echo "- DevOps automation and best practices" >> DEMO_CHANGELOG.md
+        echo "- Production-ready deployment strategies" >> DEMO_CHANGELOG.md
+        echo "" >> DEMO_CHANGELOG.md
+        echo "### 🚀 Quick Start" >> DEMO_CHANGELOG.md
+        echo "\`\`\`bash" >> DEMO_CHANGELOG.md
+        echo "git clone https://github.com/${{ github.repository }}.git" >> DEMO_CHANGELOG.md
+        echo "cd taxi-duration-predictor-mlops" >> DEMO_CHANGELOG.md
+        echo "cp .env.docker .env" >> DEMO_CHANGELOG.md
+        echo "docker-compose up -d" >> DEMO_CHANGELOG.md
+        echo "\`\`\`" >> DEMO_CHANGELOG.md
 
         echo "✅ Demo changelog generated"
         cat DEMO_CHANGELOG.md
-
-    - name: 📦 Create demo release package
-      run: |
-        VERSION="${{ steps.version.outputs.version }}"
-        PACKAGE_NAME="taxi-duration-predictor-mlops-$VERSION"
-
-        echo "📦 Creating demo release package..."
-
-        # Create package info
-        cat << EOF > PACKAGE_INFO.txt
-        🚕 Taxi Duration Predictor - MLOps Demo Package
-        ================================================
-
-        Version: $VERSION
-        Created: $(date)
-        Repository: https://github.com/${{ github.repository }}
-
-        📁 Package Contents:
-        ├── 📊 Complete MLOps pipeline demonstration
-        ├── 🐳 Docker containerization setup
-        ├── 📚 Comprehensive documentation
-        ├── 🎓 Educational guides and examples
-        └── 🚀 Production-ready deployment scripts
-
-        🚀 Quick Start:
-        1. Extract this package
-        2. Run: cp .env.docker .env
-        3. Run: docker-compose up -d
-        4. Open: http://localhost:8501
-
-        📖 For detailed instructions, see README.md
-        EOF
-
-        echo "✅ Package info created:"
-        cat PACKAGE_INFO.txt
 
   # ============================================================================
   # 🐳 DEMO BUILD PROCESS
@@ -154,27 +91,28 @@ jobs:
     - name: 📥 Checkout code
       uses: actions/checkout@v4
 
-    - name: 🐳 Demo Docker build process
+    - name: 🐳 Demo build simulation
       run: |
-        echo "🐳 Demo: Docker Build Process"
+        echo "🐳 Demo: Release Build Process"
         echo "📦 Version: ${{ needs.create-release-demo.outputs.version }}"
-
-        # Simulate multi-service build
-        services=("api" "dashboard")
-
-        for service in "\${services[@]}"; do
-          echo ""
-          echo "🏗️ Building \$service service..."
-          echo "   📄 Using: Dockerfile.\$service"
-          echo "   🏷️ Tag: ghcr.io/${{ github.repository }}-\$service:${{ needs.create-release-demo.outputs.version }}"
-          echo "   ⚡ Platform: linux/amd64,linux/arm64"
-          sleep 2  # Simulate build time
-          echo "   ✅ Build completed successfully"
-        done
-
         echo ""
-        echo "🎉 All Docker images built successfully!"
-        echo "📤 Images would be pushed to: ghcr.io/${{ github.repository }}"
+        echo "🏗️ Simulated Build Steps:"
+        echo "   1. ✅ Source code validated"
+        echo "   2. ✅ Dependencies resolved"
+        echo "   3. ✅ Docker images built"
+        echo "   4. ✅ Multi-architecture support (amd64, arm64)"
+        echo "   5. ✅ Security scans completed"
+        echo "   6. ✅ Release artifacts created"
+        echo ""
+        echo "📤 Simulated Artifacts:"
+        echo "   🐳 Docker Images:"
+        echo "      - ghcr.io/${{ github.repository }}-api:${{ needs.create-release-demo.outputs.version }}"
+        echo "      - ghcr.io/${{ github.repository }}-dashboard:${{ needs.create-release-demo.outputs.version }}"
+        echo "   📦 Release Packages:"
+        echo "      - taxi-duration-predictor-mlops-${{ needs.create-release-demo.outputs.version }}.tar.gz"
+        echo "      - taxi-duration-predictor-mlops-${{ needs.create-release-demo.outputs.version }}.zip"
+        echo ""
+        echo "✅ Build process simulation completed!"
 
   # ============================================================================
   # 📊 RELEASE SUMMARY
@@ -190,356 +128,30 @@ jobs:
       run: |
         echo "## 🏷️ Release Demo Summary" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### 📦 Release Details" >> $GITHUB_STEP_SUMMARY
+        echo "### 📦 Release Information" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
         echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
         echo "| 🏷️ Version | ${{ needs.create-release-demo.outputs.version }} |" >> $GITHUB_STEP_SUMMARY
         echo "| 📅 Date | $(date -u +"%Y-%m-%d %H:%M:%S UTC") |" >> $GITHUB_STEP_SUMMARY
         echo "| 🔄 Trigger | ${{ github.event_name }} |" >> $GITHUB_STEP_SUMMARY
-        echo "| 🌟 Status | Demo Release |" >> $GITHUB_STEP_SUMMARY
+        echo "| 🌟 Type | Demo Release |" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### 🚀 Demo Features" >> $GITHUB_STEP_SUMMARY
+        echo "### 🚀 Demo Features Highlighted" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ **Automated Versioning**: Semantic version generation" >> $GITHUB_STEP_SUMMARY
-        echo "- 📝 **Changelog Generation**: Automatic release notes" >> $GITHUB_STEP_SUMMARY
-        echo "- 🐳 **Multi-arch Builds**: Docker images for amd64 + arm64" >> $GITHUB_STEP_SUMMARY
-        echo "- 📦 **Release Packages**: Ready-to-deploy artifacts" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ **Automated Versioning**: Semantic version management" >> $GITHUB_STEP_SUMMARY
+        echo "- 📝 **Changelog Generation**: Automatic release documentation" >> $GITHUB_STEP_SUMMARY
+        echo "- 🐳 **Container Images**: Multi-platform Docker builds" >> $GITHUB_STEP_SUMMARY
+        echo "- 📦 **Release Artifacts**: Downloadable packages" >> $GITHUB_STEP_SUMMARY
         echo "- 🎓 **Educational Demo**: Complete MLOps showcase" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### 🎯 Educational Value" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "This release workflow demonstrates:" >> $GITHUB_STEP_SUMMARY
-        echo "- 🔄 **Automated Release Management**" >> $GITHUB_STEP_SUMMARY
-        echo "- 📊 **Version Control Best Practices**" >> $GITHUB_STEP_SUMMARY
-        echo "- 🐳 **Container Registry Integration**" >> $GITHUB_STEP_SUMMARY
-        echo "- 📚 **Documentation Automation**" >> $GITHUB_STEP_SUMMARY
-        echo "- 🚀 **Production Deployment Readiness**" >> $GITHUB_STEP_SUMMARY    - name: 🏷️ Generate version
-      id: version
-      run: |
-        if [[ "${{ github.event_name }}" == "push" ]]; then
-          # Extract version from tag
-          VERSION=${GITHUB_REF#refs/tags/}
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-        else
-          # Generate version based on input
-          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+        echo "🎯 **Educational Impact**: Demonstrates professional release management practices" >> $GITHUB_STEP_SUMMARY
 
-          # Parse semantic version
-          LATEST_TAG=${LATEST_TAG#v}
-          IFS='.' read -ra VERSION_PARTS <<< "$LATEST_TAG"
-          MAJOR=${VERSION_PARTS[0]:-0}
-          MINOR=${VERSION_PARTS[1]:-0}
-          PATCH=${VERSION_PARTS[2]:-0}
-
-          # Increment based on release type
-          case "${{ github.event.inputs.release_type }}" in
-            "major")
-              MAJOR=$((MAJOR + 1))
-              MINOR=0
-              PATCH=0
-              ;;
-            "minor")
-              MINOR=$((MINOR + 1))
-              PATCH=0
-              ;;
-            "patch")
-              PATCH=$((PATCH + 1))
-              ;;
-          esac
-
-          NEW_VERSION="v$MAJOR.$MINOR.$PATCH"
-          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
-
-          # Create tag
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag -a "$NEW_VERSION" -m "Release $NEW_VERSION"
-          git push origin "$NEW_VERSION"
-        fi
-
-    - name: 📝 Generate changelog
-      id: changelog
-      run: |
-        VERSION="${{ steps.version.outputs.version }}"
-
-        # Get commits since last tag
-        LAST_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
-
-        if [[ -n "$LAST_TAG" ]]; then
-          COMMITS=$(git log $LAST_TAG..HEAD --oneline --no-merges)
-        else
-          COMMITS=$(git log --oneline --no-merges)
-        fi
-
-        # Generate changelog
-        CHANGELOG="## 🚀 What's New in $VERSION
-
-### ✨ Features & Improvements
-"
-
-        while IFS= read -r commit; do
-          if [[ $commit == *"feat:"* ]] || [[ $commit == *"add:"* ]]; then
-            CHANGELOG="$CHANGELOG
-- 🆕 ${commit#* }"
-          elif [[ $commit == *"fix:"* ]]; then
-            CHANGELOG="$CHANGELOG
-- 🐛 ${commit#* }"
-          elif [[ $commit == *"docs:"* ]]; then
-            CHANGELOG="$CHANGELOG
-- 📚 ${commit#* }"
-          elif [[ $commit == *"perf:"* ]]; then
-            CHANGELOG="$CHANGELOG
-- ⚡ ${commit#* }"
-          elif [[ $commit == *"refactor:"* ]]; then
-            CHANGELOG="$CHANGELOG
-- ♻️ ${commit#* }"
-          fi
-        done <<< "$COMMITS"
-
-        CHANGELOG="$CHANGELOG
-
-### 🛠️ Technical Details
-- **MLflow Version**: Latest tracking with model registry
-- **Docker Images**: Multi-architecture support (amd64, arm64)
-- **API Version**: FastAPI with OpenAPI 3.0 documentation
-- **Dashboard**: Streamlit with real-time monitoring
-- **Database**: PostgreSQL with optimized queries
-- **CI/CD**: Full GitHub Actions pipeline with automated testing
-
-### 📊 Model Performance
-- **Best Model**: RandomForest Regressor
-- **RMSE**: ~6.6 minutes average prediction error
-- **Training Data**: 49,719 NYC taxi trips
-- **Features**: 9 engineered features including distance and temporal patterns
-
-### 🚀 Deployment
-\`\`\`bash
-# Quick start with Docker
-git clone https://github.com/${{ github.repository }}.git
-cd taxi-duration-predictor-mlops
-cp .env.docker .env
-docker-compose up -d
-\`\`\`
-
-### 🔗 Links
-- 📖 [Documentation](https://github.com/${{ github.repository }}/blob/main/README.md)
-- 🐳 [Docker Images](https://github.com/${{ github.repository }}/pkgs/container/taxi-duration-predictor-mlops)
-- 🔬 [MLflow Experiments](https://github.com/${{ github.repository }}/blob/main/DOCS/MLFLOW_GUIDE.md)
-- 🏗️ [Architecture Guide](https://github.com/${{ github.repository }}/blob/main/DOCS/HEXAGONAL_ARCHITECTURE.md)
-"
-
-        # Save changelog to file for release notes
-        echo "$CHANGELOG" > CHANGELOG.md
-
-        # Set output (escape newlines for GitHub Actions)
-        {
-          echo 'changelog<<EOF'
-          echo "$CHANGELOG"
-          echo 'EOF'
-        } >> $GITHUB_OUTPUT
-
-    - name: 🚀 Create GitHub Release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ steps.version.outputs.version }}
-        release_name: 🚕 Taxi Duration Predictor ${{ steps.version.outputs.version }}
-        body: ${{ steps.changelog.outputs.changelog }}
-        draft: false
-        prerelease: ${{ github.event.inputs.pre_release == 'true' }}
-
-  # ============================================================================
-  # 🐳 BUILD RELEASE IMAGES
-  # ============================================================================
-  build-release-images:
-    name: 🐳 Build Release Images
-    runs-on: ubuntu-latest
-    needs: create-release
-
-    strategy:
-      matrix:
-        service: [api, dashboard]
-        platform: [linux/amd64, linux/arm64]
-
-    steps:
-    - name: 📥 Checkout code
-      uses: actions/checkout@v4
-
-    - name: 🐳 Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-
-    - name: 🔐 Log in to Container Registry
-      uses: docker/login-action@v3
-      with:
-        registry: ${{ env.DOCKER_REGISTRY }}
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: 📝 Extract metadata
-      id: meta
-      uses: docker/metadata-action@v5
-      with:
-        images: ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}-${{ matrix.service }}
-        tags: |
-          type=semver,pattern={{version}},value=${{ needs.create-release.outputs.version }}
-          type=semver,pattern={{major}}.{{minor}},value=${{ needs.create-release.outputs.version }}
-          type=semver,pattern={{major}},value=${{ needs.create-release.outputs.version }}
-          type=raw,value=latest
-
-    - name: 🏗️ Build and push multi-platform image
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        file: ./Dockerfile.${{ matrix.service }}
-        platforms: ${{ matrix.platform }}
-        push: true
-        tags: ${{ steps.meta.outputs.tags }}
-        labels: ${{ steps.meta.outputs.labels }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
-
-  # ============================================================================
-  # 📦 PACKAGE RELEASE ARTIFACTS
-  # ============================================================================
-  package-artifacts:
-    name: 📦 Package Release Artifacts
-    runs-on: ubuntu-latest
-    needs: [create-release, build-release-images]
-
-    steps:
-    - name: 📥 Checkout code
-      uses: actions/checkout@v4
-
-    - name: 📦 Create release package
-      run: |
-        VERSION="${{ needs.create-release.outputs.version }}"
-        PACKAGE_NAME="taxi-duration-predictor-mlops-$VERSION"
-
-        # Create package directory
-        mkdir -p "$PACKAGE_NAME"
-
-        # Copy essential files
-        cp -r taxi_duration_predictor/ "$PACKAGE_NAME/"
-        cp -r DOCS/ "$PACKAGE_NAME/"
-        cp docker-compose.yml "$PACKAGE_NAME/"
-        cp Dockerfile.* "$PACKAGE_NAME/"
-        cp requirements.txt "$PACKAGE_NAME/"
-        cp .env.docker "$PACKAGE_NAME/"
-        cp README.md "$PACKAGE_NAME/"
-        cp CHANGELOG.md "$PACKAGE_NAME/"
-
-        # Create deployment scripts
-        cat << EOF > "$PACKAGE_NAME/quick-start.sh"
-        #!/bin/bash
-        echo "🚀 Starting Taxi Duration Predictor MLOps Stack..."
-        echo "📝 Version: $VERSION"
-        echo "🔧 Setting up environment..."
-
-        # Copy environment file
-        cp .env.docker .env
-
-        # Start services
-        echo "🐳 Starting Docker containers..."
-        docker-compose up -d
-
-        echo "⏳ Waiting for services to start..."
-        sleep 30
-
-        echo "✅ Services started!"
-        echo "🌐 API Documentation: http://localhost:8000/docs"
-        echo "📊 Dashboard: http://localhost:8501"
-        echo "🔬 MLflow: http://localhost:5000"
         echo ""
-        echo "🛑 To stop: docker-compose down"
-        EOF
-
-        cat << EOF > "$PACKAGE_NAME/quick-start.bat"
-        @echo off
-        echo 🚀 Starting Taxi Duration Predictor MLOps Stack...
-        echo 📝 Version: $VERSION
-        echo 🔧 Setting up environment...
-
-        REM Copy environment file
-        copy .env.docker .env
-
-        REM Start services
-        echo 🐳 Starting Docker containers...
-        docker-compose up -d
-
-        echo ⏳ Waiting for services to start...
-        timeout /t 30 /nobreak
-
-        echo ✅ Services started!
-        echo 🌐 API Documentation: http://localhost:8000/docs
-        echo 📊 Dashboard: http://localhost:8501
-        echo 🔬 MLflow: http://localhost:5000
-        echo.
-        echo 🛑 To stop: docker-compose down
-        pause
-        EOF
-
-        # Make scripts executable
-        chmod +x "$PACKAGE_NAME/quick-start.sh"
-
-        # Create archive
-        tar -czf "$PACKAGE_NAME.tar.gz" "$PACKAGE_NAME"
-        zip -r "$PACKAGE_NAME.zip" "$PACKAGE_NAME"
-
-        echo "📦 Release packages created:"
-        ls -la *.tar.gz *.zip
-
-    - name: 📤 Upload release assets
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ needs.create-release.outputs.upload_url }}
-        asset_path: ./taxi-duration-predictor-mlops-${{ needs.create-release.outputs.version }}.tar.gz
-        asset_name: taxi-duration-predictor-mlops-${{ needs.create-release.outputs.version }}.tar.gz
-        asset_content_type: application/gzip
-
-    - name: 📤 Upload release assets (ZIP)
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ needs.create-release.outputs.upload_url }}
-        asset_path: ./taxi-duration-predictor-mlops-${{ needs.create-release.outputs.version }}.zip
-        asset_name: taxi-duration-predictor-mlops-${{ needs.create-release.outputs.version }}.zip
-        asset_content_type: application/zip
-
-  # ============================================================================
-  # 📊 RELEASE SUMMARY
-  # ============================================================================
-  release-summary:
-    name: 📊 Release Summary
-    runs-on: ubuntu-latest
-    needs: [create-release, build-release-images, package-artifacts]
-    if: always()
-
-    steps:
-    - name: 📊 Generate release summary
-      run: |
-        echo "## 🏷️ Release Summary" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### 📦 Release Details" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
-        echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
-        echo "| 🏷️ Version | ${{ needs.create-release.outputs.version }} |" >> $GITHUB_STEP_SUMMARY
-        echo "| 📅 Date | $(date -u +"%Y-%m-%d %H:%M:%S UTC") |" >> $GITHUB_STEP_SUMMARY
-        echo "| 🔗 Tag | [\`${{ needs.create-release.outputs.version }}\`](https://github.com/${{ github.repository }}/releases/tag/${{ needs.create-release.outputs.version }}) |" >> $GITHUB_STEP_SUMMARY
-        echo "| 📦 Assets | tar.gz, zip packages |" >> $GITHUB_STEP_SUMMARY
-        echo "| 🐳 Images | Multi-platform (amd64, arm64) |" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### 🚀 Quick Start" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
-        echo "# Download and run latest release" >> $GITHUB_STEP_SUMMARY
-        echo "wget https://github.com/${{ github.repository }}/archive/${{ needs.create-release.outputs.version }}.tar.gz" >> $GITHUB_STEP_SUMMARY
-        echo "tar -xzf ${{ needs.create-release.outputs.version }}.tar.gz" >> $GITHUB_STEP_SUMMARY
-        echo "cd taxi-duration-predictor-mlops-*" >> $GITHUB_STEP_SUMMARY
-        echo "./quick-start.sh" >> $GITHUB_STEP_SUMMARY
-        echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+        echo "🎉 Release Demo Summary:"
+        echo "   ✅ Version generated: ${{ needs.create-release-demo.outputs.version }}"
+        echo "   ✅ Changelog created"
+        echo "   ✅ Build process simulated"
+        echo "   ✅ Artifacts prepared"
+        echo ""
+        echo "🚀 Release demo completed successfully!"
