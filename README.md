@@ -13,23 +13,81 @@ Este proyecto demuestra una implementación completa de **MLOps** utilizando **A
 
 > **🎯 Objetivo Educativo**: Mostrar la transición de notebooks experimentales a un sistema MLOps profesional listo para producción.
 
-## 🚀 **Quick Start - Deploy en 30 segundos**
+## 🚀 **Quick Start - ¡Ejecuta TODO en 5 minutos!**
 
+### **📋 Prerequisitos (Solo necesitas estos 2):**
+1. **Git** instalado → [Descargar Git](https://git-scm.com/downloads)
+2. **Docker Desktop** instalado y ejecutándose → [Descargar Docker](https://www.docker.com/products/docker-desktop/)
+
+### **🎯 Opción 1: Ejecución con Docker (RECOMENDADA - MÁS FÁCIL)**
+
+**Paso 1: Abrir terminal/cmd**
+- **Windows**: Presiona `Win + R`, escribe `cmd`, presiona Enter
+- **Mac**: Presiona `Cmd + Space`, escribe "Terminal", presiona Enter
+- **Linux**: Presiona `Ctrl + Alt + T`
+
+**Paso 2: Clonar el repositorio**
+```bash
+git clone https://github.com/VictorCabrejos/taxi-duration-predictor-mlops.git
+```
+
+**Paso 3: Entrar a la carpeta**
+```bash
+cd taxi-duration-predictor-mlops
+```
+
+**Paso 4: Configurar variables de entorno**
+```bash
+# En Windows:
+copy .env.docker .env
+
+# En Mac/Linux:
+cp .env.docker .env
+```
+
+**Paso 5: ¡Ejecutar todo el sistema!**
+```bash
+docker-compose up -d
+```
+
+**Paso 6: Esperar 30-60 segundos y ¡Listo!**
+Abre tu navegador y ve a:
+- 🚀 **API Server**: http://localhost:8000
+- 📊 **Dashboard Principal**: http://localhost:8501
+- 🔬 **MLflow UI**: http://localhost:5000
+
+### **🎯 Opción 2: Ejecución Manual (Para desarrolladores)**
+
+**Solo si quieres ejecutar sin Docker:**
+
+**Prerequisitos adicionales:**
+- Python 3.9 o superior
+- Conda o pip
+
+**Pasos:**
 ```bash
 # 1. Clonar repositorio
 git clone https://github.com/VictorCabrejos/taxi-duration-predictor-mlops.git
 cd taxi-duration-predictor-mlops
 
-# 2. Configurar entorno
-cp .env.docker .env
+# 2. Crear ambiente virtual
+conda create -n taxi_mlops python=3.9
+conda activate taxi_mlops
 
-# 3. Levantar todo el stack
-docker-compose up -d
+# 3. Instalar dependencias
+pip install -r requirements.txt
 
-# 4. ¡Listo! Acceder a las aplicaciones:
-# 🚀 API Server: http://localhost:8000
-# 📊 Dashboard: http://localhost:8501
-# 🔬 MLflow UI: http://localhost:5000
+# 4. Configurar la base de datos (ejecutar el notebook)
+# Abrir: 02_database_setup.ipynb en Jupyter
+
+# 5. Entrenar los modelos (ejecutar el notebook)
+# Abrir: 03_mlflow_training.ipynb en Jupyter
+
+# 6. En terminal 1 - Ejecutar API:
+python 05_fastapi_server.py
+
+# 7. En terminal 2 - Ejecutar Dashboard:
+streamlit run 04_streamlit_dashboard.py
 ```
 
 ## 🏗️ **Arquitectura del Sistema**
@@ -131,6 +189,102 @@ taxi-duration-predictor-mlops/
 
 ## 🛠️ **Development Setup**
 
+### **🔍 ¿Cómo sé si funcionó correctamente?**
+
+**Después de ejecutar `docker-compose up -d`, verifica:**
+
+1. **Servicios ejecutándose:**
+```bash
+docker-compose ps
+```
+Deberías ver algo como:
+```
+NAME                     COMMAND                  SERVICE     STATUS
+taxi-predictor-api       "uvicorn 05_fastapi_…"   api         Up 30 seconds
+taxi-predictor-dashboard "streamlit run 04_st…"   dashboard   Up 20 seconds
+taxi-predictor-db        "docker-entrypoint.s…"   postgres    Up 40 seconds
+taxi-predictor-mlflow    "bash -c ' pip insta…"   mlflow      Up 35 seconds
+```
+
+2. **Probar las URLs:**
+- ✅ http://localhost:8000/health → Debería devolver `{"status":"healthy"}`
+- ✅ http://localhost:8501 → Debería mostrar el dashboard de Streamlit
+- ✅ http://localhost:5000 → Debería mostrar la interfaz de MLflow
+
+### **🚨 ¿Algo no funciona? Guía de Solución de Problemas**
+
+**Problema 1: "Docker no está ejecutándose"**
+```bash
+# Error: Cannot connect to the Docker daemon
+```
+**Solución:** Abre Docker Desktop y espera que arranque completamente.
+
+**Problema 2: "Puerto ya en uso"**
+```bash
+# Error: Port 8000 is already in use
+```
+**Solución:** Detén otros servicios o cambia el puerto:
+```bash
+docker-compose down
+docker-compose up -d
+```
+
+**Problema 3: "Git no reconocido"**
+```bash
+# Error: 'git' is not recognized
+```
+**Solución:** Instala Git desde: https://git-scm.com/downloads
+
+**Problema 4: Ver logs para debugging**
+```bash
+# Ver logs de todos los servicios:
+docker-compose logs
+
+# Ver logs de un servicio específico:
+docker-compose logs api
+docker-compose logs dashboard
+```
+
+**Problema 5: Reiniciar todo desde cero**
+```bash
+# Detener y limpiar todo:
+docker-compose down -v
+
+# Volver a empezar:
+docker-compose up -d
+```
+
+### **📱 Para Estudiantes Principiantes**
+
+**¿Primera vez con Docker? ¡No te preocupes!**
+
+1. **¿Qué es Docker?**
+   - Es como una "caja mágica" que tiene todo lo necesario para ejecutar el proyecto
+   - No necesitas instalar Python, PostgreSQL, ni nada más
+   - Solo Docker y ya!
+
+2. **¿Qué hace `docker-compose up -d`?**
+   - Descarga y crea 4 "contenedores" (como mini-computadoras virtuales)
+   - Uno para la base de datos, otro para la API, otro para el dashboard, etc.
+   - Los conecta automáticamente para que funcionen juntos
+
+3. **¿Cómo paro todo?**
+```bash
+docker-compose down
+```
+
+4. **¿Cómo veo si está funcionando?**
+```bash
+docker-compose ps
+```
+
+5. **¿Cómo actualizo si hay cambios?**
+```bash
+git pull
+docker-compose down
+docker-compose up -d --build
+```
+
 ### **Prerequisites**
 - Docker Desktop
 - Git
@@ -186,12 +340,23 @@ kubectl apply -f k8s/
 
 ## 📊 **API Usage Examples**
 
-### **Health Check**
+### **🔥 Prueba rápida del sistema**
+
+**1. Verificar que todo está funcionando:**
 ```bash
 curl http://localhost:8000/health
 ```
+**Respuesta esperada:**
+```json
+{
+  "status": "healthy",
+  "timestamp": "2025-07-19T12:00:00",
+  "model_loaded": true,
+  "database_status": "connected"
+}
+```
 
-### **Prediction**
+**2. Hacer una predicción de prueba:**
 ```bash
 curl -X POST http://localhost:8000/predict \
   -H "Content-Type: application/json" \
@@ -206,6 +371,45 @@ curl -X POST http://localhost:8000/predict \
   }'
 ```
 
+**¿No tienes curl? ¡No hay problema!**
+- Ve a: http://localhost:8000/docs
+- Haz clic en "POST /predict"
+- Haz clic en "Try it out"
+- Pega los datos de ejemplo y haz clic en "Execute"
+
+### **🎮 Comandos Útiles para Estudiantes**
+
+```bash
+# 🚀 Iniciar todo el sistema
+docker-compose up -d
+
+# ⏹️ Detener todo el sistema
+docker-compose down
+
+# 📊 Ver estado de los servicios
+docker-compose ps
+
+# 📝 Ver logs en tiempo real
+docker-compose logs -f
+
+# 📝 Ver logs de un servicio específico
+docker-compose logs -f api
+docker-compose logs -f dashboard
+
+# 🔄 Reiniciar un servicio específico
+docker-compose restart api
+
+# 🗑️ Limpiar todo (incluyendo datos)
+docker-compose down -v
+
+# 🔨 Reconstruir imágenes (si cambiaste código)
+docker-compose build --no-cache
+docker-compose up -d
+
+# 💻 Entrar a un contenedor (modo avanzado)
+docker-compose exec api bash
+```
+
 ## 📚 **Documentation**
 
 - 📋 **[Project Overview](DOCS/README.md)**: Descripción completa del sistema
@@ -215,12 +419,98 @@ curl -X POST http://localhost:8000/predict \
 
 ## 🎓 **Para Estudiantes**
 
-### **Conceptos Aprendidos**
-- ✅ MLOps End-to-End Pipeline
-- ✅ Arquitectura Hexagonal y DDD
-- ✅ API-First Development
-- ✅ Containerización con Docker
-- ✅ Monitoring y Observabilidad
+### **🚀 Tu Primera Vez con MLOps - Guía Paso a Paso**
+
+**¿Nunca has usado Docker, APIs, o MLOps? ¡Perfecto! Esta guía es para ti.**
+
+#### **Paso 1: Preparar tu computadora (5 minutos)**
+1. **Descargar Git**: https://git-scm.com/downloads
+   - En Windows: Descargar e instalar con opciones por defecto
+   - En Mac: `brew install git` o descargar desde la página
+
+2. **Descargar Docker Desktop**: https://www.docker.com/products/docker-desktop/
+   - Instalar y abrir Docker Desktop
+   - Esperar que aparezca "Docker Desktop is running"
+
+#### **Paso 2: Obtener el código (2 minutos)**
+1. **Abrir terminal/línea de comandos**:
+   - Windows: `Win + R` → escribir `cmd` → Enter
+   - Mac: `Cmd + Space` → escribir "terminal" → Enter
+
+2. **Clonar el proyecto**:
+```bash
+git clone https://github.com/VictorCabrejos/taxi-duration-predictor-mlops.git
+cd taxi-duration-predictor-mlops
+```
+
+#### **Paso 3: Ejecutar el sistema completo (1 minuto)**
+```bash
+# Configurar variables (Windows):
+copy .env.docker .env
+
+# Configurar variables (Mac/Linux):
+cp .env.docker .env
+
+# ¡Ejecutar todo!
+docker-compose up -d
+```
+
+#### **Paso 4: ¡Explorar! (30 minutos de diversión)**
+
+**🎯 URLs para explorar:**
+- **📊 Dashboard Principal**: http://localhost:8501
+  - Aquí puedes hacer predicciones y ver gráficos
+  - ¡Juega con los números y ve cómo cambian las predicciones!
+
+- **🚀 API Documentation**: http://localhost:8000/docs
+  - Interfaz interactiva para probar la API
+  - Haz clic en "POST /predict" y luego "Try it out"
+
+- **🔬 MLflow Experiments**: http://localhost:5000
+  - Ve cómo se entrenaron los 3 modelos de ML
+  - Compara métricas como RMSE y accuracy
+
+**🎮 Cosas para probar:**
+1. En el dashboard, cambia los valores de pickup y dropoff
+2. Prueba con diferentes números de pasajeros
+3. Ve qué pasa los fines de semana vs días laborales
+4. Compara predicciones para distancias cortas vs largas
+
+#### **Paso 5: Entender lo que está pasando**
+
+**¿Qué acabas de ejecutar?**
+- 🗄️ Una base de datos PostgreSQL con 49,719 viajes reales de taxi NYC
+- 🤖 3 modelos de machine learning entrenados y comparados
+- 🚀 Una API REST que sirve predicciones en tiempo real
+- 📊 Un dashboard ejecutivo para monitoreo
+- 🔬 Un sistema de tracking de experimentos ML
+
+**¿Cómo funciona la predicción?**
+1. El usuario ingresa: origen, destino, # pasajeros, fecha
+2. El sistema calcula features: distancia, hora del día, día de semana
+3. El modelo RandomForest (el mejor) predice la duración
+4. Se devuelve el resultado con un confidence score
+
+### **🧠 Conceptos Clave Aprendidos**
+- ✅ **MLOps End-to-End Pipeline**: De datos raw a predicciones en producción
+- ✅ **Arquitectura Hexagonal y DDD**: Código organizado y mantenible
+- ✅ **API-First Development**: Servir modelos vía REST API
+- ✅ **Containerización con Docker**: Ambientes reproducibles
+- ✅ **Monitoring y Observabilidad**: Dashboards ejecutivos para MLOps
+
+### **💡 ¿Qué puedes hacer después?**
+1. **Modificar el modelo**: Edita `03_mlflow_training.ipynb` y prueba otros algoritmos
+2. **Agregar features**: Incluye clima, tráfico, eventos especiales
+3. **Mejorar el dashboard**: Agrega más visualizaciones en `04_streamlit_dashboard.py`
+4. **Extender la API**: Añade endpoints en `05_fastapi_server.py`
+5. **Deploy en la nube**: Usa AWS, GCP, o Azure
+
+### **📚 Recursos para seguir aprendiendo**
+- **MLOps**: [MLOps Guide](https://ml-ops.org/)
+- **FastAPI**: [FastAPI Tutorial](https://fastapi.tiangolo.com/tutorial/)
+- **Streamlit**: [Streamlit Docs](https://docs.streamlit.io/)
+- **Docker**: [Docker Get Started](https://docs.docker.com/get-started/)
+- **MLflow**: [MLflow Tutorial](https://mlflow.org/docs/latest/tutorials-and-examples/tutorial.html)
 
 ### **Skills Técnicos**
 - Python (FastAPI, Streamlit, MLflow)

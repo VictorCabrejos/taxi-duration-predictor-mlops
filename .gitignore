@@ -176,3 +176,15 @@ experiments/
 ~$*
 *.tmp
 *.temp
+
+# Presentation files (not for students)
+*.pptx
+*.ppt
+*.key
+
+# AWS credentials and sensitive info
+aws_info.txt
+*.pem
+*.key
+.aws/
+.gcp/

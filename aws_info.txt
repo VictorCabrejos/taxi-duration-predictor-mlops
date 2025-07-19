@@ -1,9 +1,0 @@
-Engine version
-
-PostgreSQL 17.4-R1
-
-DB instance identifier: taxi-duration-db
-Master username: taxiuser
-Master password: TaxiDB2025! (guarda esta contraseña)
-
-Security group name: taxi-db-sg
