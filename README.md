@@ -45,6 +45,9 @@ copy .env.docker .env
 cp .env.docker .env
 ```
 
+**💡 ¿Por qué este paso?**
+Docker necesita conocer las contraseñas y URLs para conectar todos los servicios automáticamente. Este comando copia la configuración de ejemplo (`.env.docker`) y la convierte en la configuración real (`.env`) que Docker utilizará. Sin este archivo, los contenedores no podrán comunicarse entre sí.
+
 **Paso 5: ¡Ejecutar todo el sistema!**
 ```bash
 docker-compose up -d
@@ -253,6 +256,12 @@ docker-compose down -v
 # Volver a empezar:
 docker-compose up -d
 ```
+
+**Problema 6: Error con archivos temporales de Office**
+```bash
+# Error: Permission denied on ~$*.pptx files
+```
+**Solución:** Cierra PowerPoint u Office antes de hacer git operations. Los archivos `~$` son temporales y se ignoran automáticamente.
 
 ### **📱 Para Estudiantes Principiantes**
 
