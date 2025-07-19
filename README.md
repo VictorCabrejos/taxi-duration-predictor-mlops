@@ -535,7 +535,7 @@ docker-compose up -d
 ## 📈 **Métricas de Éxito**
 
 ### **Técnicas**
-- ✅ Model Performance: RMSE < 7.0 minutos
+- ✅ Model Performance: RMSE < 8.0 minutos (threshold empresarial)
 - ✅ API Latency: < 200ms por predicción
 - ✅ System Uptime: > 99.5%
 - ✅ Data Quality: 0 errores de ingesta

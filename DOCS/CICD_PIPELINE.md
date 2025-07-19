@@ -107,7 +107,7 @@ Demo: RandomForest model training
    - Features: distance_km, hour, passengers
    - Target: duration en segundos
    - Entrenar RandomForestRegressor
-   - Validar RMSE < 3600 segundos (threshold lenient)
+   - Validar RMSE < 480 segundos (8 minutos - threshold empresarial realista)
 
 **Código Automático Ejecutado:**
 ```python
