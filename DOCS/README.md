@@ -1,17 +1,65 @@
-# 🚕 Taxi Duration Predictor - MLOps Stack Completo
+# � Documentation - MLOps Taxi Duration Predictor
 
-## 📋 **Descripción del Proyecto**
+## 📁 **Documentation Structure**
 
-Este proyecto demuestra una implementación completa de **MLOps** utilizando **Arquitectura Hexagonal** y **Domain-Driven Design (DDD)** para predicción de duración de viajes de taxi en NYC.
+This folder contains all project documentation organized by category:
 
-## 🎯 **Objetivo Educativo**
+```
+DOCS/
+├── project_development/          # 🏗️ Project development history
+│   ├── GITIGNORE_UPDATES.md         # Git ignore evolution
+│   ├── REORGANIZATION_SUMMARY.md     # Project restructuring
+│   └── PROJECT_TRANSFORMATION_COMPLETE.md  # Complete transformation log
+├── testing/                      # 🧪 Testing documentation
+│   ├── PROJECT_TESTING_RESULTS.md    # Testing validation results
+│   └── TESTING_STRATEGY_COMPLETE.md  # Complete testing strategy
+├── ASSIGNMENT_GUIDE.md           # 📋 Student assignment guide
+├── CICD_PIPELINE.md              # 🚀 CI/CD pipeline documentation
+├── CICD_SLIDES.md                # 📊 CI/CD presentation materials
+├── DEPLOYMENT_GUIDE.md           # 🐳 Deployment instructions
+├── ESTUDIANTE_CICD_GUIDE.md      # 🎓 Student CI/CD guide
+├── HEXAGONAL_ARCHITECTURE.md     # 🏗️ Architecture documentation
+├── MLOPS_PIPELINE.md             # 🔄 MLOps workflow guide
+├── PROYECTO_FINAL_STATUS.md      # 📈 Final project status
+└── QUICK_START.md                # 🚀 Quick start guide
+```
 
-Mostrar la **transición** de notebooks experimentales a un **sistema MLOps profesional** listo para producción con:
-- ✅ Pipeline automatizado de ML
-- ✅ API REST para predicciones
-- ✅ Dashboard ejecutivo para monitoreo
-- ✅ CI/CD con GitHub Actions
-- ✅ Containerización con Docker
+## 🎯 **How to Navigate Documentation**
+
+### **🚀 Getting Started**
+- **New to the project?** → Start with `QUICK_START.md`
+- **Want to deploy?** → Check `DEPLOYMENT_GUIDE.md`
+- **Student assignment?** → See `ASSIGNMENT_GUIDE.md`
+
+### **🏗️ Architecture & Design**
+- **Understanding the structure** → `HEXAGONAL_ARCHITECTURE.md`
+- **MLOps workflow** → `MLOPS_PIPELINE.md`
+- **Project evolution** → `project_development/PROJECT_TRANSFORMATION_COMPLETE.md`
+
+### **🧪 Testing & Development**
+- **Testing strategy** → `testing/TESTING_STRATEGY_COMPLETE.md`
+- **Test results** → `testing/PROJECT_TESTING_RESULTS.md`
+- **Development history** → `project_development/`
+
+### **🚀 CI/CD & Deployment**
+- **Pipeline overview** → `CICD_PIPELINE.md`
+- **Student guide** → `ESTUDIANTE_CICD_GUIDE.md`
+- **Deployment steps** → `DEPLOYMENT_GUIDE.md`
+
+---
+
+## 📋 **Project Overview**
+
+This project demonstrates a complete **MLOps** implementation using **Hexagonal Architecture** and **Domain-Driven Design (DDD)** for NYC taxi trip duration prediction.
+
+### **🎯 Educational Objective**
+
+Show the **transition** from experimental notebooks to a **professional MLOps system** ready for production with:
+- ✅ Automated ML pipeline
+- ✅ REST API for predictions
+- ✅ Executive dashboard for monitoring
+- ✅ CI/CD with GitHub Actions
+- ✅ Containerization with Docker
 
 ---
 

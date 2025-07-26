@@ -1,117 +1,68 @@
-# 🎯 Quick Start Guide - Docker Deployment
+# 🚀 Quick Start Guide - Taxi Duration Predictor
 
-## 🚀 **Inicio Rápido con Docker**
+## For Users Who Just Downloaded the Repo
 
-### **Prerequisitos**
-- ✅ Docker Desktop instalado y ejecutándose
-- ✅ Git para clonar el repositorio
-- ✅ 4GB RAM libre para los contenedores
+### 📊 **Option 1: Just the Dashboard (Fastest)**
 
-### **🔥 Despliegue en 3 comandos**
+**Windows:**
+1. Double-click `start.bat`
+2. Wait for dashboard to open at http://localhost:8506
 
+**Linux/Mac:**
+1. Double-click `start.sh` or run `./start.sh`
+2. Wait for dashboard to open at http://localhost:8506
+
+**Any OS:**
 ```bash
-# 1. Clonar repositorio
-git clone <repository-url>
-cd taxi-duration-predictor
-
-# 2. Configurar entorno
-cp .env.docker .env
-
-# 3. Iniciar todo el stack
-docker-compose up -d
+python start.py
 ```
 
-### **🌐 URLs de Acceso**
-Una vez desplegado, accede a:
+### 🏗️ **Option 2: Full MLOps Stack**
+
+```bash
+python main.py
+```
+
+This starts:
 - 🚀 **API Server**: http://localhost:8000
-- 📚 **API Docs**: http://localhost:8000/docs
-- 📊 **Dashboard**: http://localhost:8501
+- 📊 **Dashboard**: http://localhost:8506
 - 🔬 **MLflow UI**: http://localhost:5000
-- 🗄️ **PostgreSQL**: localhost:5432
 
-### **📋 Comandos Útiles**
+## 🎯 What You Get
 
+### The Dashboard Includes:
+- ✅ **Real-time predictions** with interactive map
+- ✅ **Model comparison** and performance metrics
+- ✅ **Data analysis** with business insights
+- ✅ **API monitoring** and health checks
+- ✅ **Intelligent trip analysis** with contextual insights
+
+### Sample Prediction Test:
+- **Pickup**: Times Square (40.7580, -73.9855)
+- **Dropoff**: JFK Airport (40.6413, -73.7781)
+- **Expected**: ~45-60 minutes depending on traffic
+
+## 🔧 Troubleshooting
+
+**Error: "streamlit not found"**
 ```bash
-# Ver estado de servicios
-docker-compose ps
-
-# Ver logs en tiempo real
-docker-compose logs -f
-
-# Logs de servicio específico
-docker-compose logs -f api
-docker-compose logs -f dashboard
-
-# Detener servicios
-docker-compose down
-
-# Limpiar todo (incluyendo volúmenes)
-docker-compose down -v
-
-# Reconstruir imágenes
-docker-compose build --no-cache
+pip install -r requirements.txt
 ```
 
-### **🔧 Configuración de Entorno**
-
-Archivo `.env` personalizable:
+**Error: Python path issues**
 ```bash
-POSTGRES_PASSWORD=taxi_predictor_2025
-DATABASE_URL=postgresql://postgres:taxi_predictor_2025@postgres:5432/taxi_duration
-MLFLOW_TRACKING_URI=http://mlflow:5000
-API_BASE_URL=http://api:8000
-DEBUG=false
-LOG_LEVEL=INFO
-WORKERS=4
+conda activate ds_env
+python start.py
 ```
 
-### **🏥 Health Checks**
+**Dashboard won't load**
+- Check if port 8506 is available
+- Try different port: `streamlit run observability/dashboards/enhanced_dashboard.py --server.port 8507`
 
-Verificar que todos los servicios estén saludables:
-```bash
-# Health check automático
-curl http://localhost:8000/health
-curl http://localhost:8501/_stcore/health
-curl http://localhost:5000
-```
+## 📋 Requirements
 
-### **📊 Arquitectura de Contenedores**
+- Python 3.9+
+- Dependencies in `requirements.txt`
+- Optional: Conda environment `ds_env`
 
-```
-🌐 Frontend Layer:
-├── 📊 Streamlit Dashboard (8501)
-└── 🌐 FastAPI Server (8000)
-
-🧠 Application Layer:
-├── 🤖 MLflow Tracking (5000)
-└── 🏗️ Hexagonal Architecture
-
-🗄️ Data Layer:
-└── 🗄️ PostgreSQL (5432)
-```
-
-### **🎯 Demo Completo**
-
-El sistema incluye:
-- ✅ **49,719 registros** de NYC Taxi trips
-- ✅ **3 modelos ML** pre-entrenados (RandomForest ganador: 6.62 min RMSE)
-- ✅ **API REST** completa con documentación OpenAPI
-- ✅ **Dashboard interactivo** con 5 vistas de MLOps
-- ✅ **Monitoreo en tiempo real** de modelo y sistema
-- ✅ **Arquitectura hexagonal** con DDD
-
-### **🚀 Para Producción**
-
-```bash
-# Usar configuración de producción
-docker-compose -f docker-compose.prod.yml up -d
-
-# Con SSL y balanceador
-docker-compose -f docker-compose.prod.yml -f docker-compose.ssl.yml up -d
-```
-
----
-
-**🎓 Sistema completo listo para demostración en clase**
-**🏗️ Arquitectura Hexagonal + DDD + MLOps**
-**🐳 Completamente containerizado y portable**
+The scripts automatically detect and use the right Python environment.

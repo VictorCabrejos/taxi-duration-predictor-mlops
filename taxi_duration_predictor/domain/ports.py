@@ -151,3 +151,70 @@ class MetricsService(ABC):
     async def get_prediction_stats(self, days: int = 7) -> Dict[str, Any]:
         """Obtiene estadísticas de predicciones"""
         pass
+
+
+class ModelRepository(ABC):
+    """Puerto - Repositorio de modelos ML"""
+
+    @abstractmethod
+    async def save_model(
+        self,
+        model: Any,
+        model_name: str,
+        metrics: Dict[str, float],
+        features: List[str],
+        hyperparams: Dict[str, Any] = None,
+    ) -> str:
+        """Guarda un modelo con sus metadatos"""
+        pass
+
+    @abstractmethod
+    async def load_best_model(self) -> Optional[Any]:
+        """Carga el mejor modelo disponible"""
+        pass
+
+    @abstractmethod
+    async def get_model_info(self) -> Optional[Dict[str, Any]]:
+        """Obtiene información del modelo activo"""
+        pass
+
+    @abstractmethod
+    async def predict(self, features: TripFeatures) -> Optional[Prediction]:
+        """Realiza predicción usando el modelo"""
+        pass
+
+
+class ExperimentTracker(ABC):
+    """Puerto - Tracking de experimentos ML"""
+
+    @abstractmethod
+    async def log_experiment(
+        self,
+        experiment_name: str,
+        parameters: Dict[str, Any],
+        metrics: Dict[str, float],
+        artifacts: Dict[str, str] = None,
+    ) -> str:
+        """Registra un experimento"""
+        pass
+
+    @abstractmethod
+    async def compare_models(self, limit: int = 10) -> Any:
+        """Compara modelos en experimentos"""
+        pass
+
+
+class ModelTrainer(ABC):
+    """Puerto - Entrenamiento de modelos"""
+
+    @abstractmethod
+    async def train_model(
+        self, model_name: str, X: Any, y: Any, test_size: float = 0.2
+    ) -> Dict[str, Any]:
+        """Entrena un modelo específico"""
+        pass
+
+    @abstractmethod
+    async def train_all_models(self, X: Any, y: Any) -> List[Dict[str, Any]]:
+        """Entrena todos los modelos disponibles"""
+        pass

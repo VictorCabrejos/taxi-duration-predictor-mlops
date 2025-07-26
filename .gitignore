@@ -96,10 +96,15 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# MLflow
-mlruns/
+# MLflow - Only ignore mlruns outside of data/ folder
+/mlruns/
+scripts/mlruns/
+educational_resources/mlruns/
+*/mlruns/
+# But keep data/mlruns/ tracked (comment out the line below if needed)
+# data/mlruns/
+
 mlartifacts/
-mlflow.db
 mlflow.db.lock
 
 # Data files
@@ -188,3 +193,38 @@ aws_info.txt
 *.key
 .aws/
 .gcp/
+
+# GitHub Copilot custom instructions (keep private)
+.github/copilot-instructions.md
+
+# Educational/context files that shouldn't be in repo
+*_PARA_CHATGPT.txt
+CONTEXTO_*.txt
+NOTES.md
+*.md.backup
+
+# Video and media files
+*.mp4
+*.avi
+*.mov
+*.wmv
+*.flv
+*.mkv
+*.webm
+*.m4v
+CONTEXTO_COMPLETO_PARA_CHATGPT.txt
+*_PARA_CHATGPT.txt
+REORGANIZATION_SUMMARY.md
+
+# Personal notes and drafts
+NOTES.md
+TODO.md
+DRAFT*.md
+notes/
+drafts/
+
+# Test files and personal scripts
+test_*.py
+scratch_*.py
+playground/
+sandbox/

@@ -109,42 +109,48 @@ class TaxiTrip:
 class TripFeatures:
     """Value Object - Features calculadas para ML"""
 
-    trip_distance_km: float
-    pickup_hour: int
-    pickup_day_of_week: int
+    distance_km: float
     passenger_count: int
     vendor_id: int
-    is_weekend: bool
-    is_rush_hour: bool
-    store_and_fwd_flag_encoded: int  # 0 o 1
+    hour_of_day: int
+    day_of_week: int
+    month: int
+    is_weekend: int
+    is_rush_hour: int
+    pickup_datetime: datetime
 
     def to_array(self) -> np.ndarray:
         """Convierte features a array numpy para ML"""
         return np.array(
             [
-                self.trip_distance_km,
-                self.pickup_hour,
-                self.pickup_day_of_week,
+                self.distance_km,
                 self.passenger_count,
                 self.vendor_id,
-                int(self.is_weekend),
-                int(self.is_rush_hour),
-                self.store_and_fwd_flag_encoded,
+                self.hour_of_day,
+                self.day_of_week,
+                self.month,
+                self.is_weekend,
+                self.is_rush_hour,
             ]
         )
 
     @classmethod
-    def from_trip(cls, trip: TaxiTrip) -> "TripFeatures":
+    def from_trip(cls, trip: "TaxiTrip") -> "TripFeatures":
         """Crea features desde un TaxiTrip"""
+        pickup_location = trip.pickup_location
+        dropoff_location = trip.dropoff_location
+        distance_km = pickup_location.distance_to(dropoff_location)
+
         return cls(
-            trip_distance_km=trip.trip_distance_km,
-            pickup_hour=trip.pickup_hour,
-            pickup_day_of_week=trip.pickup_day_of_week,
+            distance_km=distance_km,
             passenger_count=trip.passenger_count,
             vendor_id=trip.vendor_id,
-            is_weekend=trip.is_weekend,
-            is_rush_hour=trip.is_rush_hour,
-            store_and_fwd_flag_encoded=1 if trip.store_and_fwd_flag == "Y" else 0,
+            hour_of_day=trip.pickup_datetime.hour,
+            day_of_week=trip.pickup_datetime.weekday(),
+            month=trip.pickup_datetime.month,
+            is_weekend=1 if trip.pickup_datetime.weekday() >= 5 else 0,
+            is_rush_hour=1 if trip.pickup_datetime.hour in [7, 8, 9, 17, 18, 19] else 0,
+            pickup_datetime=trip.pickup_datetime,
         )
 
 
@@ -152,16 +158,15 @@ class TripFeatures:
 class Prediction:
     """Entidad - Representa una predicción del modelo"""
 
-    trip_id: str
-    predicted_duration_seconds: float
+    predicted_duration_minutes: float
     confidence_score: float
     model_version: str
-    created_at: datetime
     features_used: TripFeatures
+    created_at: datetime
 
     @property
-    def predicted_duration_minutes(self) -> float:
-        return self.predicted_duration_seconds / 60
+    def predicted_duration_seconds(self) -> float:
+        return self.predicted_duration_minutes * 60
 
     def is_confident(self, threshold: float = 0.8) -> bool:
         """True si la predicción tiene alta confianza"""

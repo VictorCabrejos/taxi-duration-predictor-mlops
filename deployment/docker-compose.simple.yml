@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database (keep this one - needed for production data)
+  postgres:
+    image: postgres:13
+    container_name: taxi-predictor-db
+    environment:
+      POSTGRES_DB: taxi_duration
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres123}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - taxi-network
+
+  # Unified App Container - Runs main.py (API + Dashboard + MLflow)
+  app:
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile.unified
+    container_name: taxi-predictor-app
+    environment:
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-postgres123}@postgres:5432/taxi_duration
+    ports:
+      - "8000:8000"  # FastAPI
+      - "8506:8506"  # Streamlit Dashboard
+      - "5000:5000"  # MLflow UI
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - mlflow_data:/app/data/mlruns
+      - model_data:/app/data
+    networks:
+      - taxi-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  mlflow_data:
+  model_data:
+
+networks:
+  taxi-network:
+    driver: bridge

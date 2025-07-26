@@ -28,7 +28,9 @@ class Config:
     )
 
     # MLflow
-    mlflow_tracking_uri: str = os.getenv("MLFLOW_TRACKING_URI", "./mlruns")
+    mlflow_tracking_uri: str = os.getenv(
+        "MLFLOW_TRACKING_URI", "sqlite:///data/mlflow.db"
+    )
     mlflow_experiment_name: str = "taxi_duration_prediction"
 
     # API
