@@ -1,7 +1,18 @@
 # 🚕 Taxi Duration Predictor - MLOps Stack Completo
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python 3.9+](https://img.shields.io/b├── 🧪 TESTING
+[![Python 3.9+](https://img.shields.io/badge/Python-3.9%2B-blue.svg)](https://www.python.org/downloads/)
+[![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=flat&logo=docker&logoColor=white)](https://www.docker.com/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=flat&logo=fastapi)](https://fastapi.tiangolo.com/)
+[![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?style=flat&logo=streamlit&logoColor=white)](https://streamlit.io/)
+[![MLflow](https://img.shields.io/badge/MLflow-%23d9ead3.svg?style=flat&logo=numpy&logoColor=blue)](https://mlflow.org/)
+
+[![CI/CD Pipeline](https://github.com/VictorCabrejos/taxi-duration-predictor-mlops/actions/workflows/ci-cd-pipeline.yml/badge.svg)](https://github.com/VictorCabrejos/taxi-duration-predictor-mlops/actions/workflows/ci-cd-pipeline.yml)
+[![Model Deployment](https://github.com/VictorCabrejos/taxi-duration-predictor-mlops/actions/workflows/model-deployment.yml/badge.svg)](https://github.com/VictorCabrejos/taxi-duration-predictor-mlops/actions/workflows/model-deployment.yml)
+[![Release](https://github.com/VictorCabrejos/taxi-duration-predictor-mlops/actions/workflows/release.yml/badge.svg)](https://github.com/VictorCabrejos/taxi-duration-predictor-mlops/actions/workflows/release.yml)
+
+```
+├── 🧪 TESTING
 │   └── tests/
 │       ├── unit/                    # Domain logic tests
 │       ├── integration/             # Adapter tests
@@ -36,15 +47,8 @@
 │   ├── requirements.txt            # Dependencias Python
 │   ├── pytest.ini                 # Test configuration
 │   ├── run_tests.sh/.bat          # Test execution scripts
-│   └── README.md                   # Esta documentaciónblue.svg)](https://www.python.org/downloads/)
-[![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=flat&logo=docker&logoColor=white)](https://www.docker.com/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=flat&logo=fastapi)](https://fastapi.tiangolo.com/)
-[![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?style=flat&logo=streamlit&logoColor=white)](https://streamlit.io/)
-[![MLflow](https://img.shields.io/badge/MLflow-%23d9ead3.svg?style=flat&logo=numpy&logoColor=blue)](https://mlflow.org/)
-
-[![CI/CD Pipeline](https://github.com/VictorCabrejos/taxi-duration-predictor-mlops/actions/workflows/ci-cd-pipeline.yml/badge.svg)](https://github.com/VictorCabrejos/taxi-duration-predictor-mlops/actions/workflows/ci-cd-pipeline.yml)
-[![Model Deployment](https://github.com/VictorCabrejos/taxi-duration-predictor-mlops/actions/workflows/model-deployment.yml/badge.svg)](https://github.com/VictorCabrejos/taxi-duration-predictor-mlops/actions/workflows/model-deployment.yml)
-[![Release](https://github.com/VictorCabrejos/taxi-duration-predictor-mlops/actions/workflows/release.yml/badge.svg)](https://github.com/VictorCabrejos/taxi-duration-predictor-mlops/actions/workflows/release.yml)
+│   └── README.md                   # Esta documentación
+```
 
 ## 📋 **Descripción del Proyecto**
 
