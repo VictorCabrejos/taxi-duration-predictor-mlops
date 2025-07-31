@@ -18,7 +18,6 @@
 ## *End-to-End MLOps • Big Data Processing • Production-Grade Architecture*
 
 </div>
-
 ```
 ├── 🧪 TESTING
 │   └── tests/

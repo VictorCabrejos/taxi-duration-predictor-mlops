@@ -1,0 +1,157 @@
+name: 🏷️ Release Demo
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: 'Type of release'
+        required: true
+        default: 'demo'
+        type: choice
+        options:
+        - demo
+        - patch
+        - minor
+        - major
+
+jobs:
+  # ============================================================================
+  # 🏷️ CREATE RELEASE DEMO
+  # ============================================================================
+  create-release-demo:
+    name: 🏷️ Release Demo
+    runs-on: ubuntu-latest
+
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+
+    - name: 🏷️ Generate demo version
+      id: version
+      run: |
+        if [[ "${{ github.event_name }}" == "push" ]]; then
+          # Extract version from tag
+          VERSION=${GITHUB_REF#refs/tags/}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "📦 Release triggered by tag: $VERSION"
+        else
+          # Generate demo version
+          DEMO_VERSION="v1.0.0-demo-$(date +%Y%m%d-%H%M%S)"
+          echo "version=$DEMO_VERSION" >> $GITHUB_OUTPUT
+          echo "📦 Demo release version: $DEMO_VERSION"
+        fi
+
+    - name: 📝 Generate demo changelog
+      run: |
+        VERSION="${{ steps.version.outputs.version }}"
+
+        echo "## 🚀 Taxi Duration Predictor $VERSION" > DEMO_CHANGELOG.md
+        echo "" >> DEMO_CHANGELOG.md
+        echo "### ✨ Demo Features" >> DEMO_CHANGELOG.md
+        echo "- 🆕 Complete MLOps pipeline demonstration" >> DEMO_CHANGELOG.md
+        echo "- 📊 Interactive Streamlit dashboard" >> DEMO_CHANGELOG.md
+        echo "- 🤖 MLflow experiment tracking" >> DEMO_CHANGELOG.md
+        echo "- 🐳 Docker containerization" >> DEMO_CHANGELOG.md
+        echo "- 🏗️ Hexagonal architecture with DDD" >> DEMO_CHANGELOG.md
+        echo "- 🔄 GitHub Actions CI/CD pipeline" >> DEMO_CHANGELOG.md
+        echo "" >> DEMO_CHANGELOG.md
+        echo "### 🎓 Educational Value" >> DEMO_CHANGELOG.md
+        echo "This release demonstrates enterprise-grade MLOps practices:" >> DEMO_CHANGELOG.md
+        echo "- End-to-end machine learning lifecycle" >> DEMO_CHANGELOG.md
+        echo "- Professional software architecture" >> DEMO_CHANGELOG.md
+        echo "- DevOps automation and best practices" >> DEMO_CHANGELOG.md
+        echo "- Production-ready deployment strategies" >> DEMO_CHANGELOG.md
+        echo "" >> DEMO_CHANGELOG.md
+        echo "### 🚀 Quick Start" >> DEMO_CHANGELOG.md
+        echo "\`\`\`bash" >> DEMO_CHANGELOG.md
+        echo "git clone https://github.com/${{ github.repository }}.git" >> DEMO_CHANGELOG.md
+        echo "cd taxi-duration-predictor-mlops" >> DEMO_CHANGELOG.md
+        echo "cp .env.docker .env" >> DEMO_CHANGELOG.md
+        echo "docker-compose up -d" >> DEMO_CHANGELOG.md
+        echo "\`\`\`" >> DEMO_CHANGELOG.md
+
+        echo "✅ Demo changelog generated"
+        cat DEMO_CHANGELOG.md
+
+  # ============================================================================
+  # 🐳 DEMO BUILD PROCESS
+  # ============================================================================
+  demo-build-process:
+    name: 🐳 Demo Build Process
+    runs-on: ubuntu-latest
+    needs: create-release-demo
+
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+
+    - name: 🐳 Demo build simulation
+      run: |
+        echo "🐳 Demo: Release Build Process"
+        echo "📦 Version: ${{ needs.create-release-demo.outputs.version }}"
+        echo ""
+        echo "🏗️ Simulated Build Steps:"
+        echo "   1. ✅ Source code validated"
+        echo "   2. ✅ Dependencies resolved"
+        echo "   3. ✅ Docker images built"
+        echo "   4. ✅ Multi-architecture support (amd64, arm64)"
+        echo "   5. ✅ Security scans completed"
+        echo "   6. ✅ Release artifacts created"
+        echo ""
+        echo "📤 Simulated Artifacts:"
+        echo "   🐳 Docker Images:"
+        echo "      - ghcr.io/${{ github.repository }}-api:${{ needs.create-release-demo.outputs.version }}"
+        echo "      - ghcr.io/${{ github.repository }}-dashboard:${{ needs.create-release-demo.outputs.version }}"
+        echo "   📦 Release Packages:"
+        echo "      - taxi-duration-predictor-mlops-${{ needs.create-release-demo.outputs.version }}.tar.gz"
+        echo "      - taxi-duration-predictor-mlops-${{ needs.create-release-demo.outputs.version }}.zip"
+        echo ""
+        echo "✅ Build process simulation completed!"
+
+  # ============================================================================
+  # 📊 RELEASE SUMMARY
+  # ============================================================================
+  release-summary:
+    name: 📊 Release Summary
+    runs-on: ubuntu-latest
+    needs: [create-release-demo, demo-build-process]
+    if: always()
+
+    steps:
+    - name: 📊 Generate release summary
+      run: |
+        echo "## 🏷️ Release Demo Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 📦 Release Information" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
+        echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
+        echo "| 🏷️ Version | ${{ needs.create-release-demo.outputs.version }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| 📅 Date | $(date -u +"%Y-%m-%d %H:%M:%S UTC") |" >> $GITHUB_STEP_SUMMARY
+        echo "| 🔄 Trigger | ${{ github.event_name }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| 🌟 Type | Demo Release |" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 🚀 Demo Features Highlighted" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ **Automated Versioning**: Semantic version management" >> $GITHUB_STEP_SUMMARY
+        echo "- 📝 **Changelog Generation**: Automatic release documentation" >> $GITHUB_STEP_SUMMARY
+        echo "- 🐳 **Container Images**: Multi-platform Docker builds" >> $GITHUB_STEP_SUMMARY
+        echo "- 📦 **Release Artifacts**: Downloadable packages" >> $GITHUB_STEP_SUMMARY
+        echo "- 🎓 **Educational Demo**: Complete MLOps showcase" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "🎯 **Educational Impact**: Demonstrates professional release management practices" >> $GITHUB_STEP_SUMMARY
+
+        echo ""
+        echo "🎉 Release Demo Summary:"
+        echo "   ✅ Version generated: ${{ needs.create-release-demo.outputs.version }}"
+        echo "   ✅ Changelog created"
+        echo "   ✅ Build process simulated"
+        echo "   ✅ Artifacts prepared"
+        echo ""
+        echo "🚀 Release demo completed successfully!"
