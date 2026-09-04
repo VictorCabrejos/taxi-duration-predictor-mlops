@@ -159,7 +159,7 @@ taxi-duration-predictor-mlops/
 │       ├── docker-compose.yml        # Orquestación completa
 │       ├── Dockerfile.api           # Container FastAPI
 │       ├── Dockerfile.dashboard     # Container Streamlit
-│       ├── .env.docker             # Variables de entorno
+│       ├── .env.docker.example     # Plantilla segura de variables de entorno
 │       └── start-docker.*          # Scripts de inicio
 │
 ├── �️ DATA & MODELS
@@ -438,12 +438,15 @@ cd taxi-duration-predictor-mlops
 #### **Paso 3: Ejecutar el sistema completo (1 minuto)**
 ```bash
 # Configurar variables (Windows):
-copy .env.docker .env
+copy deployment\.env.docker.example deployment\.env.docker
+# Editar deployment\.env.docker y reemplazar todos los placeholders.
 
 # Configurar variables (Mac/Linux):
-cp .env.docker .env
+cp deployment/.env.docker.example deployment/.env.docker
+# Editar deployment/.env.docker y reemplazar todos los placeholders.
 
 # ¡Ejecutar todo!
+cd deployment
 docker-compose up -d
 ```
 

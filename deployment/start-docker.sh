@@ -9,7 +9,12 @@ if ! docker info > /dev/null 2>&1; then
     exit 1
 fi
 
-# Copy environment file
+# Require a local environment file and copy it for Docker Compose
+if [ ! -f .env.docker ]; then
+    echo "Missing .env.docker. Copy .env.docker.example to .env.docker and replace the placeholders."
+    exit 1
+fi
+
 if [ ! -f .env ]; then
     echo "📋 Creating environment file..."
     cp .env.docker .env

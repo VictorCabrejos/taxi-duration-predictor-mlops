@@ -10,7 +10,12 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
-REM Copy environment file if it doesn't exist
+REM Require a local environment file and copy it for Docker Compose
+if not exist .env.docker (
+    echo Missing .env.docker. Copy .env.docker.example to .env.docker and replace the placeholders.
+    exit /b 1
+)
+
 if not exist .env (
     echo 📋 Creating environment file...
     copy .env.docker .env

@@ -228,3 +228,7 @@ test_*.py
 scratch_*.py
 playground/
 sandbox/
+
+# Local Docker configuration (copy from deployment/.env.docker.example)
+deployment/.env.docker
+deployment/.env
