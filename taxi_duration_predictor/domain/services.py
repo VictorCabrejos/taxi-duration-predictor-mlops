@@ -3,11 +3,11 @@ Domain Services - Taxi Duration Predictor
 Servicios del dominio (Business Logic)
 """
 
-from typing import List, Dict, Any, Optional
-from datetime import datetime, timedelta
+from typing import Dict, Any, Optional
+from datetime import datetime
 import logging
 
-from .entities import TaxiTrip, TripFeatures, Prediction
+from .entities import TaxiTrip, Prediction
 from .ports import (
     TripRepository,
     PredictionRepository,

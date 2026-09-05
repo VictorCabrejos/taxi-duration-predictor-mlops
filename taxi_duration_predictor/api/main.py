@@ -3,12 +3,14 @@ FastAPI Main Application - Taxi Duration Predictor
 Aplicación principal FastAPI siguiendo hexagonal architecture
 """
 
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from contextlib import asynccontextmanager
 import logging
 from datetime import datetime
+
 import uvicorn
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from .controller import create_api_router
 
@@ -16,30 +18,32 @@ from .controller import create_api_router
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    """Log process lifecycle without contacting optional backing services."""
+    logger.info("🚀 Iniciando Taxi Duration Predictor API...")
+    yield
+    logger.info("🛑 Cerrando Taxi Duration Predictor API...")
+
+
 # Crear aplicación FastAPI
 app = FastAPI(
-    title="🚕 Taxi Duration Predictor API",
+    title="Taxi Duration Predictor API",
     description="""
-    **API REST para predicciones de duración de viajes de taxi en NYC**
+    API educativa de referencia para explorar predicciones de duración de viajes.
 
-    Esta API utiliza modelos de Machine Learning entrenados con MLflow para predecir
-    la duración de viajes de taxi basándose en ubicaciones de origen y destino.
-
-    ## Características principales:
-    - ✅ Predicciones en tiempo real
-    - ✅ Modelos entrenados con 49,000+ viajes reales
-    - ✅ Arquitectura hexagonal + DDD
-    - ✅ MLflow para tracking de modelos
-    - ✅ Validación automática de coordenadas NYC
-
-    ## Modelos disponibles:
-    - Random Forest (producción)
-    - XGBoost (backup)
-    - Linear Regression (baseline)
+    El repositorio demuestra límites de arquitectura hexagonal, validación de
+    coordenadas de ejemplo, adaptadores de modelos y seguimiento opcional con
+    MLflow. No incluye un dataset de NYC, un modelo entrenado listo para producción
+    ni garantías de servicio. Los endpoints de predicción e información del modelo
+    requieren que el operador proporcione una configuración de modelo y MLflow
+    utilizable. `GET /health` comprueba únicamente que el proceso API responde.
     """,
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
+    lifespan=lifespan,
     openapi_tags=[
         {
             "name": "predictions",
@@ -101,28 +105,6 @@ async def global_exception_handler(request, exc):
             "timestamp": datetime.now().isoformat(),
         },
     )
-
-
-# Eventos de inicio y cierre
-@app.on_event("startup")
-async def startup_event():
-    """Evento de inicio de la aplicación"""
-    logger.info("🚀 Iniciando Taxi Duration Predictor API...")
-    logger.info("📊 Verificando conexión con MLflow...")
-
-    try:
-        # Aquí podrías agregar verificaciones iniciales
-        # como conexión a base de datos, carga de modelos, etc.
-        logger.info("✅ API iniciada correctamente")
-    except Exception as e:
-        logger.error(f"❌ Error en startup: {e}")
-
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Evento de cierre de la aplicación"""
-    logger.info("🛑 Cerrando Taxi Duration Predictor API...")
-    logger.info("✅ API cerrada correctamente")
 
 
 def create_app() -> FastAPI:

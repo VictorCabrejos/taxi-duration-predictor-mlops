@@ -5,7 +5,6 @@ Script de entrenamiento para modelos ML con MLflow tracking
 
 import asyncio
 import sys
-import os
 from pathlib import Path
 import logging
 from datetime import datetime
@@ -18,7 +17,6 @@ sys.path.append(str(project_root))
 from ..adapters.database.data_adapter import PostgreSQLAdapter
 from ..adapters.ml.sklearn_adapter import SklearnModelsAdapter
 from ..adapters.ml.mlflow_adapter import MLflowAdapter
-from ..domain.services import TripPredictionService, ModelTrainingService
 
 # Configurar logging
 logging.basicConfig(

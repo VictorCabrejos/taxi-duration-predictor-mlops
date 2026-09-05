@@ -3,17 +3,15 @@ PostgreSQL Data Adapter - Taxi Duration Predictor
 Implementa el puerto TripRepository usando PostgreSQL
 """
 
-import asyncio
 import logging
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 import pandas as pd
 import asyncpg
-from sqlalchemy import create_engine, text
-import numpy as np
+from sqlalchemy import create_engine
 
-from ...domain.entities import TaxiTrip, Location, TripDuration, Prediction
-from ...domain.ports import TripRepository, PredictionRepository
+from ...domain.entities import TaxiTrip, Location, TripDuration
+from ...domain.ports import TripRepository
 
 logger = logging.getLogger(__name__)
 

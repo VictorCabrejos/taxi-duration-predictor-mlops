@@ -147,9 +147,6 @@ logs/
 ehthumbs.db
 Thumbs.db
 
-# Docker
-.dockerignore
-
 # Database
 *.db
 *.sqlite
@@ -223,8 +220,8 @@ DRAFT*.md
 notes/
 drafts/
 
-# Test files and personal scripts
-test_*.py
+# Root-level scratch test files and personal scripts
+/test_*.py
 scratch_*.py
 playground/
 sandbox/

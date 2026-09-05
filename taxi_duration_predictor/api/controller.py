@@ -4,13 +4,12 @@ Controlador FastAPI siguiendo hexagonal architecture
 """
 
 from fastapi import APIRouter, HTTPException, Depends
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from typing import Dict, Any, Optional
 from datetime import datetime
 import logging
 
 from ..pipeline.predict import PredictionPipeline
-from ..domain.entities import TripFeatures, Location
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +26,20 @@ model_router = APIRouter(prefix="/model", tags=["model"])
 # Schemas Pydantic
 class PredictionRequest(BaseModel):
     """Schema para request de predicción"""
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "pickup_latitude": 40.7589,
+                "pickup_longitude": -73.9851,
+                "dropoff_latitude": 40.6413,
+                "dropoff_longitude": -73.7781,
+                "passenger_count": 2,
+                "vendor_id": 1,
+                "pickup_datetime": "2025-01-15T14:30:00",
+            }
+        }
+    )
 
     pickup_latitude: float = Field(
         ..., ge=40.5, le=40.9, description="Latitud de pickup (NYC)"
@@ -46,38 +59,11 @@ class PredictionRequest(BaseModel):
         None, description="Fecha/hora de pickup (opcional)"
     )
 
-    class Config:
-        schema_extra = {
-            "example": {
-                "pickup_latitude": 40.7589,
-                "pickup_longitude": -73.9851,
-                "dropoff_latitude": 40.6413,
-                "dropoff_longitude": -73.7781,
-                "passenger_count": 2,
-                "vendor_id": 1,
-                "pickup_datetime": "2025-01-15T14:30:00",
-            }
-        }
-
-
 class PredictionResponse(BaseModel):
     """Schema para response de predicción"""
 
-    predicted_duration_minutes: float = Field(
-        ..., description="Duración predicha en minutos"
-    )
-    confidence_score: float = Field(..., description="Score de confianza")
-    distance_km: float = Field(..., description="Distancia del viaje en km")
-    model_version: str = Field(..., description="Versión del modelo usado")
-    features_used: Dict[str, Any] = Field(
-        ..., description="Features usadas en la predicción"
-    )
-    prediction_timestamp: datetime = Field(
-        ..., description="Timestamp de la predicción"
-    )
-
-    class Config:
-        schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "predicted_duration_minutes": 35.2,
                 "confidence_score": 0.85,
@@ -92,7 +78,20 @@ class PredictionResponse(BaseModel):
                 "prediction_timestamp": "2025-01-15T14:30:05",
             }
         }
+    )
 
+    predicted_duration_minutes: float = Field(
+        ..., description="Duración predicha en minutos"
+    )
+    confidence_score: float = Field(..., description="Score de confianza")
+    distance_km: float = Field(..., description="Distancia del viaje en km")
+    model_version: str = Field(..., description="Versión del modelo usado")
+    features_used: Dict[str, Any] = Field(
+        ..., description="Features usadas en la predicción"
+    )
+    prediction_timestamp: datetime = Field(
+        ..., description="Timestamp de la predicción"
+    )
 
 class HealthResponse(BaseModel):
     """Schema para health check"""
@@ -218,7 +217,7 @@ async def health_check(pipeline: PredictionPipeline = Depends(get_prediction_pip
 @health_router.get("/model", response_model=ModelInfoResponse)
 async def model_info(pipeline: PredictionPipeline = Depends(get_prediction_pipeline)):
     """
-    Obtiene información detallada del modelo en producción
+    Obtiene información del modelo disponible en el tracking configurado
     """
     try:
         model_info = await pipeline.mlflow_adapter.get_model_info()

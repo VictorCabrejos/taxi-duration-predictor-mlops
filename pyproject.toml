@@ -1,0 +1,64 @@
+[build-system]
+requires = ["setuptools>=83,<84"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "taxi-duration-predictor-mlops"
+version = "1.0.0"
+description = "Educational reference implementation of a taxi-duration MLOps system."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Victor Cabrejos" }]
+dependencies = [
+  "numpy>=1.24,<3",
+]
+
+[project.optional-dependencies]
+api = [
+  "fastapi>=0.104,<1",
+  "pydantic>=2.4,<3",
+  "uvicorn[standard]>=0.24,<1",
+]
+mlops = [
+  "asyncpg>=0.29,<1",
+  "boto3>=1.29,<2",
+  "matplotlib>=3.7,<4",
+  "mlflow>=2.8,<4",
+  "pandas>=2,<3",
+  "plotly>=5.17,<7",
+  "psycopg2-binary>=2.9,<3",
+  "python-dotenv>=1,<2",
+  "requests>=2.31,<3",
+  "scikit-learn>=1.3,<2",
+  "seaborn>=0.13,<1",
+  "sqlalchemy>=2,<3",
+  "streamlit>=1.28,<2",
+  "xgboost>=2,<4",
+]
+dev = [
+  "pytest>=9.0.3,<10",
+  "pytest-asyncio>=1,<2",
+  "pytest-cov>=7.1,<8",
+  "ruff>=0.8,<1",
+]
+audit = [
+  "pip-audit>=2.9,<3",
+  "setuptools>=83,<84",
+]
+
+[tool.setuptools.packages.find]
+include = ["taxi_duration_predictor*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests/unit"]
+addopts = "-q --strict-markers"
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["E501"]

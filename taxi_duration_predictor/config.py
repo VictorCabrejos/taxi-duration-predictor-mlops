@@ -1,62 +1,42 @@
-"""
-Taxi Duration Predictor - MLOps Pipeline
-Arquitectura Hexagonal + DDD + MLflow + AWS PostgreSQL
+"""Environment-backed configuration for the Taxi MLOps reference system."""
 
-🎯 Objetivo: Predecir duración de viajes de taxi NYC
-🏗️ Arquitectura: Hexagonal simple sin over-engineering
-🚀 Stack: FastAPI + MLflow + PostgreSQL + Docker + Streamlit
-"""
+import os
+from dataclasses import dataclass, field
 
-# Configuración del proyecto
 PROJECT_NAME = "taxi_duration_predictor"
 VERSION = "1.0.0"
-DESCRIPTION = "MLOps Pipeline para predicción de duración de viajes de taxi NYC"
-
-# Configuración de entorno
-import os
-from dataclasses import dataclass
-from typing import Optional
+DESCRIPTION = "MLOps reference pipeline for NYC taxi-trip duration prediction"
 
 
 @dataclass
 class Config:
-    """Configuración principal del proyecto"""
+    """Runtime configuration with no functional credential defaults."""
 
-    # Base de datos
-    database_url: str = os.getenv(
-        "DATABASE_URL", "postgresql://user:password@localhost:5432/taxi_db"
-    )
-
-    # MLflow
-    mlflow_tracking_uri: str = os.getenv(
-        "MLFLOW_TRACKING_URI", "sqlite:///data/mlflow.db"
+    database_url: str | None = field(default_factory=lambda: os.getenv("DATABASE_URL"))
+    mlflow_tracking_uri: str = field(
+        default_factory=lambda: os.getenv("MLFLOW_TRACKING_URI", "sqlite:///data/mlflow.db")
     )
     mlflow_experiment_name: str = "taxi_duration_prediction"
-
-    # API
-    api_host: str = os.getenv("API_HOST", "localhost")
-    api_port: int = int(os.getenv("API_PORT", "8000"))
-
-    # Modelo
+    api_host: str = field(default_factory=lambda: os.getenv("API_HOST", "localhost"))
+    api_port: int = field(default_factory=lambda: int(os.getenv("API_PORT", "8000")))
     model_name: str = "taxi_duration_model"
     model_stage: str = "Production"
+    max_trip_duration_hours: float = 6.0
+    min_trip_duration_seconds: float = 30.0
+    nyc_bounds: dict[str, float] = field(
+        default_factory=lambda: {
+            "lng_min": -74.3,
+            "lng_max": -73.7,
+            "lat_min": 40.5,
+            "lat_max": 40.9,
+        }
+    )
 
-    # Features
-    max_trip_duration_hours: float = 6.0  # Filtrar outliers
-    min_trip_duration_seconds: float = 30.0  # Viajes muy cortos
-
-    # NYC boundaries
-    nyc_bounds: dict = None
-
-    def __post_init__(self):
-        if self.nyc_bounds is None:
-            self.nyc_bounds = {
-                "lng_min": -74.3,
-                "lng_max": -73.7,
-                "lat_min": 40.5,
-                "lat_max": 40.9,
-            }
+    def require_database_url(self) -> str:
+        """Return the database URL or fail before an adapter attempts to connect."""
+        if not self.database_url:
+            raise RuntimeError("DATABASE_URL is required for PostgreSQL operations")
+        return self.database_url
 
 
-# Instancia global de configuración
 config = Config()

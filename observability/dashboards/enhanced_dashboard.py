@@ -23,15 +23,17 @@ warnings.filterwarnings("ignore")
 # 🚨 FIX: Configurar paths absolutos desde cualquier directorio
 PROJECT_ROOT = Path(__file__).parent.parent.parent.absolute()
 MLFLOW_DB_PATH = PROJECT_ROOT / "data" / "mlflow.db"
-MLFLOW_TRACKING_URI = f"sqlite:///{MLFLOW_DB_PATH}"
+LOCAL_MLFLOW_TRACKING_URI = f"sqlite:///{MLFLOW_DB_PATH}"
+MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", LOCAL_MLFLOW_TRACKING_URI)
 
 print(f"🔍 Dashboard starting from: {Path.cwd()}")
 print(f"📁 Project root: {PROJECT_ROOT}")
 print(f"🗄️ MLflow DB path: {MLFLOW_DB_PATH}")
 print(f"🔗 MLflow URI: {MLFLOW_TRACKING_URI}")
 
-# Verificar que el archivo existe
-if not MLFLOW_DB_PATH.exists():
+# The local SQLite default requires a local runtime file. Remote/container tracking
+# URIs are validated when the dashboard queries MLflow.
+if MLFLOW_TRACKING_URI == LOCAL_MLFLOW_TRACKING_URI and not MLFLOW_DB_PATH.exists():
     st.error(f"❌ MLflow database not found at: {MLFLOW_DB_PATH}")
     st.stop()
 
@@ -138,13 +140,11 @@ def get_best_model():
 async def get_database_stats():
     """Obtiene estadísticas actuales de la base de datos"""
     try:
-        conn = await asyncpg.connect(
-            host="taxi-duration-db.ckj7uy651uld.us-east-1.rds.amazonaws.com",
-            port=5432,
-            database="postgres",
-            user="taxiuser",
-            password="TaxiDB2025!",
-        )
+        database_url = os.getenv("DATABASE_URL")
+        if not database_url:
+            return None, "DATABASE_URL no está configurado"
+
+        conn = await asyncpg.connect(database_url)
 
         # Estadísticas generales
         stats = await conn.fetchrow(

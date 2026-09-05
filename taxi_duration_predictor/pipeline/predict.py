@@ -16,7 +16,6 @@ sys.path.append(str(project_root))
 
 from ..adapters.ml.mlflow_adapter import MLflowAdapter
 from ..domain.entities import TripFeatures, Location, Prediction
-from ..domain.services import TripPredictionService
 
 # Configurar logging
 logging.basicConfig(
