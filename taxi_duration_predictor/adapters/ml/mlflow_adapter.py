@@ -121,7 +121,6 @@ class MLflowAdapter(ModelRepository, ExperimentTracker):
         try:
             import os
             import pickle
-            import json
             from pathlib import Path
 
             current_dir = os.getcwd()
@@ -204,7 +203,7 @@ class MLflowAdapter(ModelRepository, ExperimentTracker):
                 model = mlflow.sklearn.load_model(
                     f"file:///{best_model_path.replace(os.sep, '/')}"
                 )
-                logger.info(f"✅ Modelo cargado usando file:// URI")
+                logger.info("✅ Modelo cargado usando file:// URI")
             except Exception as e:
                 logger.warning(f"⚠️ Failed to load with file URI: {e}")
 
@@ -221,7 +220,7 @@ class MLflowAdapter(ModelRepository, ExperimentTracker):
                         model_pkl_path = Path(best_model_path) / "model.pkl"
                         with open(model_pkl_path, "rb") as f:
                             model = pickle.load(f)
-                        logger.info(f"✅ Modelo cargado directamente desde pickle")
+                        logger.info("✅ Modelo cargado directamente desde pickle")
                     except Exception as e3:
                         logger.error(f"❌ Failed to load with direct pickle: {e3}")
 
@@ -231,7 +230,7 @@ class MLflowAdapter(ModelRepository, ExperimentTracker):
                 )
                 return model
             else:
-                logger.error(f"❌ No se pudo cargar ningún modelo disponible")
+                logger.error("❌ No se pudo cargar ningún modelo disponible")
                 return None
 
         except Exception as e:

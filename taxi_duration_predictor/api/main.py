@@ -3,7 +3,7 @@ FastAPI Main Application - Taxi Duration Predictor
 Aplicación principal FastAPI siguiendo hexagonal architecture
 """
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import logging

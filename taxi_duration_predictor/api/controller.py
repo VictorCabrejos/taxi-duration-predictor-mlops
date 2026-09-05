@@ -10,7 +10,6 @@ from datetime import datetime
 import logging
 
 from ..pipeline.predict import PredictionPipeline
-from ..domain.entities import TripFeatures, Location
 
 logger = logging.getLogger(__name__)
 
