@@ -8,11 +8,10 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt ./
-RUN python -m pip install --no-cache-dir -r requirements.txt
-
+COPY pyproject.toml README.md LICENSE ./
 COPY taxi_duration_predictor/ ./taxi_duration_predictor/
 COPY observability/ ./observability/
+RUN python -m pip install --no-cache-dir ".[api,mlops]"
 
 RUN adduser --disabled-password --gecos '' appuser \
     && chown -R appuser:appuser /app

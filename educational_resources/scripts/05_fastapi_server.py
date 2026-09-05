@@ -7,12 +7,11 @@ from pydantic import BaseModel, Field
 import mlflow
 import mlflow.sklearn
 from mlflow.tracking import MlflowClient
-import pandas as pd
 import numpy as np
-import asyncio
 import asyncpg
 from datetime import datetime
 import logging
+import os
 import uvicorn
 from typing import Optional
 import warnings
@@ -42,14 +41,10 @@ app.add_middleware(
 )
 
 # 🗄️ Configuración de base de datos
-AWS_ENDPOINT = "taxi-duration-db.ckj7uy651uld.us-east-1.rds.amazonaws.com"
-DB_PORT = 5432
-DB_NAME = "postgres"
-DB_USER = "taxiuser"
-DB_PASSWORD = "TaxiDB2025!"
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 # 📊 Configuración MLflow
-MLFLOW_TRACKING_URI = "sqlite:///data/mlflow.db"
+MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", "sqlite:///data/mlflow.db")
 EXPERIMENT_NAME = "taxi_duration_prediction"
 
 # 🤖 Variables globales para modelo
@@ -226,13 +221,10 @@ async def load_best_model():
 async def check_database_connection():
     """Verifica conexión a la base de datos"""
     try:
-        conn = await asyncpg.connect(
-            host=AWS_ENDPOINT,
-            port=DB_PORT,
-            database=DB_NAME,
-            user=DB_USER,
-            password=DB_PASSWORD,
-        )
+        if not DATABASE_URL:
+            return {"status": "unconfigured", "error": "DATABASE_URL is required"}
+
+        conn = await asyncpg.connect(DATABASE_URL)
 
         # Test query
         result = await conn.fetchval("SELECT COUNT(*) FROM taxi_trips")
@@ -376,13 +368,7 @@ async def get_database_stats():
         raise HTTPException(status_code=503, detail="Base de datos no disponible")
 
     try:
-        conn = await asyncpg.connect(
-            host=AWS_ENDPOINT,
-            port=DB_PORT,
-            database=DB_NAME,
-            user=DB_USER,
-            password=DB_PASSWORD,
-        )
+        conn = await asyncpg.connect(DATABASE_URL)
 
         stats = await conn.fetchrow(
             """

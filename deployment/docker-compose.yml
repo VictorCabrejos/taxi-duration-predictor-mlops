@@ -21,25 +21,29 @@ services:
 
   # MLflow Tracking Server
   mlflow:
-    image: python:3.9-slim
-    container_name: taxi-predictor-mlflow
-    working_dir: /app
-    command: >
-      bash -c "
-        pip install mlflow[extras] psycopg2-binary &&
-        mlflow server
-          --backend-store-uri sqlite:///data/mlflow.db
-          --default-artifact-root ./data/mlruns
-          --host 0.0.0.0
-          --port 5000
-      "
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile.api
+    command:
+      - mlflow
+      - server
+      - --backend-store-uri
+      - sqlite:////app/data/mlflow.db
+      - --default-artifact-root
+      - /app/data/mlruns
+      - --host
+      - 0.0.0.0
+      - --port
+      - "5000"
     volumes:
-      - ./data:/app/data
+      - mlflow_data:/app/data
     ports:
       - "5000:5000"
-    depends_on:
-      postgres:
-        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
     networks:
       - taxi-network
 
@@ -58,7 +62,7 @@ services:
       postgres:
         condition: service_healthy
       mlflow:
-        condition: service_started
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
