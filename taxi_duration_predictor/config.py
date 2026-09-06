@@ -16,7 +16,11 @@ class Config:
     mlflow_tracking_uri: str = field(
         default_factory=lambda: os.getenv("MLFLOW_TRACKING_URI", "sqlite:///data/mlflow.db")
     )
-    mlflow_experiment_name: str = "taxi_duration_prediction"
+    mlflow_experiment_name: str = field(
+        default_factory=lambda: os.getenv("MLFLOW_EXPERIMENT_NAME", "taxi_duration_prediction")
+    )
+    model_cohort_id: str | None = field(default_factory=lambda: os.getenv("TAXI_MODEL_COHORT_ID"))
+    model_run_id: str | None = field(default_factory=lambda: os.getenv("TAXI_MODEL_RUN_ID"))
     api_host: str = field(default_factory=lambda: os.getenv("API_HOST", "localhost"))
     api_port: int = field(default_factory=lambda: int(os.getenv("API_PORT", "8000")))
     model_name: str = "taxi_duration_model"

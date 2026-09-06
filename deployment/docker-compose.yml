@@ -29,12 +29,15 @@ services:
       - server
       - --backend-store-uri
       - sqlite:////app/data/mlflow.db
-      - --default-artifact-root
+      - --serve-artifacts
+      - --artifacts-destination
       - /app/data/mlruns
       - --host
       - 0.0.0.0
       - --port
       - "5000"
+    environment:
+      MLFLOW_SERVER_ALLOWED_HOSTS: mlflow,localhost,127.0.0.1
     volumes:
       - mlflow_data:/app/data
     ports:
@@ -56,6 +59,8 @@ services:
     environment:
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in deployment/.env.docker}@postgres:5432/taxi_duration
       MLFLOW_TRACKING_URI: http://mlflow:5000
+      TAXI_MODEL_COHORT_ID: ${TAXI_MODEL_COHORT_ID:-}
+      TAXI_MODEL_RUN_ID: ${TAXI_MODEL_RUN_ID:-}
     ports:
       - "8000:8000"
     depends_on:

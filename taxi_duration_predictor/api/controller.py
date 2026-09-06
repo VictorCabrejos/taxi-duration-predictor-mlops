@@ -10,6 +10,7 @@ from datetime import datetime
 import logging
 
 from ..pipeline.predict import PredictionPipeline
+from ..adapters.ml.mlflow_adapter import ModelUnavailable
 
 logger = logging.getLogger(__name__)
 
@@ -41,49 +42,21 @@ class PredictionRequest(BaseModel):
         }
     )
 
-    pickup_latitude: float = Field(
-        ..., ge=40.5, le=40.9, description="Latitud de pickup (NYC)"
-    )
-    pickup_longitude: float = Field(
-        ..., ge=-74.3, le=-73.7, description="Longitud de pickup (NYC)"
-    )
-    dropoff_latitude: float = Field(
-        ..., ge=40.5, le=40.9, description="Latitud de dropoff (NYC)"
-    )
+    pickup_latitude: float = Field(..., ge=40.5, le=40.9, description="Latitud de pickup (NYC)")
+    pickup_longitude: float = Field(..., ge=-74.3, le=-73.7, description="Longitud de pickup (NYC)")
+    dropoff_latitude: float = Field(..., ge=40.5, le=40.9, description="Latitud de dropoff (NYC)")
     dropoff_longitude: float = Field(
         ..., ge=-74.3, le=-73.7, description="Longitud de dropoff (NYC)"
     )
     passenger_count: int = Field(1, ge=1, le=6, description="Número de pasajeros")
     vendor_id: int = Field(1, ge=1, le=2, description="ID del vendor (1 o 2)")
-    pickup_datetime: Optional[datetime] = Field(
-        None, description="Fecha/hora de pickup (opcional)"
-    )
+    pickup_datetime: Optional[datetime] = Field(None, description="Fecha/hora de pickup (opcional)")
+
 
 class PredictionResponse(BaseModel):
     """Schema para response de predicción"""
 
-    model_config = ConfigDict(
-        json_schema_extra={
-            "example": {
-                "predicted_duration_minutes": 35.2,
-                "confidence_score": None,
-                "confidence_status": "NOT_AVAILABLE",
-                "distance_km": 18.5,
-                "model_version": "latest",
-                "features_used": {
-                    "distance_km": 18.5,
-                    "passenger_count": 2,
-                    "hour_of_day": 14,
-                    "is_rush_hour": 0,
-                },
-                "prediction_timestamp": "2025-01-15T14:30:05",
-            }
-        }
-    )
-
-    predicted_duration_minutes: float = Field(
-        ..., description="Duración predicha en minutos"
-    )
+    predicted_duration_minutes: float = Field(..., description="Duración predicha en minutos")
     confidence_score: Optional[float] = Field(
         ..., description="Confianza medida; null cuando no existe evidencia calibrada"
     )
@@ -92,12 +65,11 @@ class PredictionResponse(BaseModel):
     )
     distance_km: float = Field(..., description="Distancia del viaje en km")
     model_version: str = Field(..., description="Versión del modelo usado")
-    features_used: Dict[str, Any] = Field(
-        ..., description="Features usadas en la predicción"
-    )
-    prediction_timestamp: datetime = Field(
-        ..., description="Timestamp de la predicción"
-    )
+    features_used: Dict[str, Any] = Field(..., description="Features usadas en la predicción")
+    prediction_timestamp: datetime = Field(..., description="Timestamp de la predicción")
+    run_id: str = Field(..., description="Exact MLflow run used by this prediction")
+    model: "ModelInfoResponse"
+
 
 class HealthResponse(BaseModel):
     """Schema para health check"""
@@ -112,6 +84,7 @@ class ModelInfoResponse(BaseModel):
     """Schema para información del modelo"""
 
     run_id: str = Field(..., description="Run de MLflow que contiene el artefacto")
+    artifact_uri: str
     model_type: str = Field(..., description="Tipo de modelo")
     metrics_status: Literal["MEASURED", "NOT_AVAILABLE"] = Field(
         ..., description="Disponibilidad de métricas medidas"
@@ -122,6 +95,8 @@ class ModelInfoResponse(BaseModel):
     r2_score: Optional[float] = Field(None, description="R² medido")
     features: List[str] = Field(..., description="Features usadas")
     created_at: datetime = Field(..., description="Fecha de creación")
+    provenance: Optional[Dict[str, Any]] = None
+    selection_status: Literal["ELIGIBLE", "LEGACY_OR_INVALID"]
 
 
 # Global pipeline instance
@@ -134,7 +109,10 @@ async def get_prediction_pipeline() -> PredictionPipeline:
     global _prediction_pipeline
     if _prediction_pipeline is None:
         logger.info("Inicializando PredictionPipeline...")
-        _prediction_pipeline = PredictionPipeline()
+        try:
+            _prediction_pipeline = PredictionPipeline()
+        except Exception as exc:
+            raise HTTPException(status_code=503, detail="Model store is unavailable") from exc
         logger.info("PredictionPipeline inicializado correctamente")
     return _prediction_pipeline
 
@@ -189,11 +167,17 @@ async def predict_trip_duration(
                 "is_rush_hour": prediction.features_used.is_rush_hour,
             },
             prediction_timestamp=prediction.created_at,
+            run_id=prediction.model_info["run_id"],
+            model=ModelInfoResponse(**prediction.model_info),
         )
 
+    except ModelUnavailable as e:
+        raise HTTPException(status_code=503, detail=str(e)) from e
+    except HTTPException:
+        raise
     except ValueError as e:
         logger.warning(f"Error de validación: {e}")
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:
         logger.error(f"Error interno: {e}")
         raise HTTPException(status_code=500, detail="Error interno del servidor")
@@ -237,23 +221,15 @@ async def model_info(pipeline: PredictionPipeline = Depends(get_prediction_pipel
         if not model_info:
             raise HTTPException(status_code=404, detail="No hay modelo disponible")
 
-        return ModelInfoResponse(
-            run_id=model_info["run_id"],
-            model_type=model_info["model_type"],
-            metrics_status=model_info["metrics_status"],
-            metrics_provenance=model_info["metrics_provenance"],
-            rmse=model_info["rmse"],
-            mae=model_info["mae"],
-            r2_score=model_info["r2_score"],
-            features=model_info["features"],
-            created_at=model_info["created_at"],
-        )
+        return ModelInfoResponse(**model_info)
 
+    except ModelUnavailable as e:
+        raise HTTPException(status_code=503, detail=str(e)) from e
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error obteniendo info del modelo: {e}")
-        raise HTTPException(status_code=500, detail="Error interno del servidor")
+        raise HTTPException(status_code=503, detail="Model store is unavailable")
 
 
 # Router principal que combina todos los endpoints

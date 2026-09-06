@@ -38,6 +38,7 @@ mlops = [
   "xgboost>=2,<4",
 ]
 dev = [
+  "httpx>=0.27,<1",
   "pytest>=9.0.3,<10",
   "pytest-asyncio>=1,<2",
   "pytest-cov>=7.1,<8",
@@ -52,7 +53,7 @@ audit = [
 include = ["taxi_duration_predictor*"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests/unit"]
+testpaths = ["tests/unit", "tests/api", "tests/integration"]
 addopts = "-q --strict-markers"
 
 [tool.ruff]

@@ -165,6 +165,7 @@ class Prediction:
     model_version: str
     features_used: TripFeatures
     created_at: datetime
+    model_info: Optional[dict] = None
 
     @property
     def predicted_duration_seconds(self) -> float:

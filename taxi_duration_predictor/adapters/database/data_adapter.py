@@ -45,32 +45,30 @@ class PostgreSQLTripRepository(TripRepository):
             dropoff_latitude DECIMAL(10, 7) NOT NULL,
             store_and_fwd_flag VARCHAR(1) NOT NULL,
             trip_duration_seconds DECIMAL(10, 2) NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-            -- Índices para optimizar consultas
-            INDEX idx_pickup_datetime (pickup_datetime),
-            INDEX idx_vendor_id (vendor_id),
-            INDEX idx_trip_duration (trip_duration_seconds),
-            INDEX idx_coordinates (pickup_longitude, pickup_latitude)
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
+        CREATE INDEX IF NOT EXISTS idx_pickup_datetime ON taxi_trips (pickup_datetime);
+        CREATE INDEX IF NOT EXISTS idx_vendor_id ON taxi_trips (vendor_id);
+        CREATE INDEX IF NOT EXISTS idx_trip_duration ON taxi_trips (trip_duration_seconds);
+        CREATE INDEX IF NOT EXISTS idx_coordinates ON taxi_trips (pickup_longitude, pickup_latitude);
 
         -- Tabla de predicciones
         CREATE TABLE IF NOT EXISTS predictions (
             id SERIAL PRIMARY KEY,
             trip_id VARCHAR(50) NOT NULL,
             predicted_duration_seconds DECIMAL(10, 2) NOT NULL,
-            confidence_score DECIMAL(5, 4) NOT NULL,
+            confidence_score DECIMAL(5, 4),
             model_version VARCHAR(50) NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
             -- Features usadas para la predicción (JSON)
             features_json JSONB,
 
-            FOREIGN KEY (trip_id) REFERENCES taxi_trips(id),
-            INDEX idx_trip_id (trip_id),
-            INDEX idx_created_at (created_at),
-            INDEX idx_model_version (model_version)
+            FOREIGN KEY (trip_id) REFERENCES taxi_trips(id)
         );
+        CREATE INDEX IF NOT EXISTS idx_trip_id ON predictions (trip_id);
+        CREATE INDEX IF NOT EXISTS idx_created_at ON predictions (created_at);
+        CREATE INDEX IF NOT EXISTS idx_model_version ON predictions (model_version);
         """
 
         conn = await self._get_connection()

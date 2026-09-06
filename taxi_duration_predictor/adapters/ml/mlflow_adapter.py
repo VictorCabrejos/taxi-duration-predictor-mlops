@@ -1,273 +1,282 @@
-"""
-MLflow Adapter - Taxi Duration Predictor
-Implementación de MLflow para tracking y model registry
-"""
+"""MLflow storage, cohort-scoped selection and artifact-bound serving evidence."""
 
 import json
-import logging
+import math
+import os
 import tempfile
+import threading
+from contextlib import contextmanager
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional
 
-import mlflow
 import mlflow.sklearn
 import pandas as pd
-from mlflow.entities import Run
 from mlflow.tracking import MlflowClient
 
-try:
-    from ...domain.ports import ModelRepository, ExperimentTracker
-    from ...domain.entities import Prediction, TripFeatures
-except ImportError:
-    # Fallback for when running outside package context
-    import sys
-    from pathlib import Path
+from ...config import Config
+from .features import FEATURE_COLUMNS, RAW_COLUMNS, TripFeatureTransformer
+from .provenance import VALIDATION_METRICS, valid_manifest, valid_metrics
 
-    project_root = Path(__file__).parent.parent.parent.parent
-    sys.path.append(str(project_root))
-    from taxi_duration_predictor.domain.ports import ModelRepository, ExperimentTracker
-    from taxi_duration_predictor.domain.entities import Prediction, TripFeatures
-
-logger = logging.getLogger(__name__)
-
-REQUIRED_VALIDATION_METRICS = ("rmse", "mae", "r2_score")
 MODEL_ARTIFACT_PATH = "model"
+REQUIRED_VALIDATION_METRICS = VALIDATION_METRICS
+_ARTIFACT_LOCK = threading.RLock()
 
 
-class MLflowAdapter(ModelRepository, ExperimentTracker):
-    """Adapter para MLflow - maneja tracking y model registry"""
+class ModelUnavailable(RuntimeError):
+    """No attributable inference result can be returned for this request."""
 
-    def __init__(
-        self,
-        tracking_uri: str = "sqlite:///data/mlflow.db",
-        experiment_name: str = "taxi_duration_prediction",
-    ):
-        self.tracking_uri = tracking_uri
-        self.experiment_name = experiment_name
-        self._setup_mlflow()
+
+@dataclass(frozen=True)
+class LoadedModel:
+    model: object
+    info: dict
+
+
+class MLflowAdapter:
+    def __init__(self, tracking_uri=None, experiment_name=None, *, cohort_id=None, run_id=None):
+        with _ARTIFACT_LOCK:
+            config = Config()
+            self.tracking_uri = tracking_uri or config.mlflow_tracking_uri
+            self.experiment_name = experiment_name or config.mlflow_experiment_name
+            self.cohort_id = cohort_id if cohort_id is not None else config.model_cohort_id
+            self.run_id = run_id if run_id is not None else config.model_run_id
+        # Metadata operations use the explicit client. MLflow 3.1 artifact APIs still
+        # consult process-global tracking state internally; guard and restore that state.
         self.client = MlflowClient(tracking_uri=self.tracking_uri)
 
-    def _setup_mlflow(self) -> None:
-        """Configura MLflow tracking"""
-        mlflow.set_tracking_uri(self.tracking_uri)
-        experiment = mlflow.get_experiment_by_name(self.experiment_name)
-        if experiment is None:
-            self.experiment_id = mlflow.create_experiment(self.experiment_name)
-        else:
-            self.experiment_id = experiment.experiment_id
+    @contextmanager
+    def _artifact_context(self):
+        # No await inside this scope. All artifact operations in this application use
+        # the same lock, including failure paths, and do not leave a global URI behind.
+        with _ARTIFACT_LOCK:
+            previous = mlflow.get_tracking_uri()
+            previous_environment = os.environ.get("MLFLOW_TRACKING_URI")
+            mlflow.set_tracking_uri(self.tracking_uri)
+            try:
+                yield
+            finally:
+                mlflow.set_tracking_uri(previous)
+                # MLflow also writes this environment variable. Preserve independently
+                # supplied application config even if its old global URI differed.
+                if previous_environment is None:
+                    os.environ.pop("MLFLOW_TRACKING_URI", None)
+                else:
+                    os.environ["MLFLOW_TRACKING_URI"] = previous_environment
+
+    def _experiment(self, create=False):
+        experiment = self.client.get_experiment_by_name(self.experiment_name)
+        if experiment is None and create:
+            experiment_id = self.client.create_experiment(self.experiment_name)
+            return self.client.get_experiment(experiment_id)
+        return experiment
+
+    @property
+    def experiment_id(self):
+        experiment = self._experiment()
+        return experiment.experiment_id if experiment else None
 
     async def save_model(
-        self,
-        model: Any,
-        model_name: str,
-        metrics: Dict[str, float],
-        features: List[str],
-        hyperparams: Dict[str, Any] = None,
-    ) -> str:
-        """Save one complete inference artifact with measured validation evidence."""
-        missing = set(REQUIRED_VALIDATION_METRICS) - metrics.keys()
-        if missing:
-            raise ValueError(f"Missing measured validation metrics: {sorted(missing)}")
-
-        mlflow.set_tracking_uri(self.tracking_uri)
-        with mlflow.start_run(
-            experiment_id=self.experiment_id,
-            run_name=f"{model_name}_experiment",
-        ) as run:
-            mlflow.log_param("model_type", model_name)
-            mlflow.log_param("features", json.dumps(features))
-            mlflow.log_param("feature_count", len(features))
-            mlflow.log_param("metrics_provenance", "measured_validation_split")
-            mlflow.log_param("artifact_path", MODEL_ARTIFACT_PATH)
-
-            if hyperparams:
-                mlflow.log_params(hyperparams)
-
-            mlflow.log_metrics({key: float(value) for key, value in metrics.items()})
-            with tempfile.TemporaryDirectory() as temporary_directory:
-                model_path = Path(temporary_directory) / MODEL_ARTIFACT_PATH
-                mlflow.sklearn.save_model(model, model_path)
-                mlflow.log_artifacts(model_path, artifact_path=MODEL_ARTIFACT_PATH)
-
-            logger.info(f"Modelo {model_name} guardado con run_id: {run.info.run_id}")
-            return run.info.run_id
-
-    def _model_runs(self) -> list[Run]:
-        runs = self.client.search_runs(
-            experiment_ids=[self.experiment_id],
-            filter_string="attributes.status = 'FINISHED'",
-            max_results=100,
+        self, model, model_name, metrics, features, hyperparams=None, *, provenance
+    ):
+        if not valid_metrics(metrics):
+            raise ValueError("Missing or nonfinite measured validation metrics")
+        if not valid_manifest(provenance):
+            raise ValueError("A valid dataset/evaluation provenance manifest is required")
+        expected = {
+            "provenance": provenance,
+            "metrics": metrics,
+            "model_type": model_name,
+            "features": features,
+            "raw_columns": RAW_COLUMNS,
+        }
+        if getattr(model, "lifecycle_metadata_", None) != expected:
+            raise ValueError("Artifact metadata differs from the supplied training evidence")
+        if features != FEATURE_COLUMNS or not isinstance(
+            model.named_steps.get("features"), TripFeatureTransformer
+        ):
+            raise ValueError("Artifact must include the supported raw-trip transformer")
+        run = self.client.create_run(
+            self._experiment(create=True).experiment_id,
+            tags={"mlflow.runName": f"{model_name}_experiment"},
         )
-        model_runs = []
-        for run in runs:
-            try:
-                artifacts = self.client.list_artifacts(run.info.run_id)
-            except Exception as exc:
-                logger.warning(
-                    "Could not inspect artifacts for run %s: %s",
-                    run.info.run_id,
-                    exc,
-                )
-                continue
-            if any(
-                item.path == MODEL_ARTIFACT_PATH and item.is_dir for item in artifacts
-            ):
-                model_runs.append(run)
-        return model_runs
+        run_id = run.info.run_id
+        try:
+            params = {
+                "model_type": model_name,
+                "features": json.dumps(features),
+                "provenance": json.dumps(provenance, sort_keys=True),
+                "metrics_provenance": "measured_validation_split",
+                "artifact_path": MODEL_ARTIFACT_PATH,
+                "synthetic_data": str(provenance["data_kind"] == "synthetic").lower(),
+                "cohort_id": provenance["cohort_id"],
+                **(hyperparams or {}),
+            }
+            for key, value in params.items():
+                self.client.log_param(run_id, key, value)
+            for key, value in metrics.items():
+                if not math.isfinite(float(value)):
+                    raise ValueError("All recorded metrics must be finite")
+                self.client.log_metric(run_id, key, float(value))
+            with tempfile.TemporaryDirectory() as directory:
+                model_path = Path(directory) / MODEL_ARTIFACT_PATH
+                mlflow.sklearn.save_model(model, model_path)
+                with self._artifact_context():
+                    self.client.log_artifacts(
+                        run_id, str(model_path), artifact_path=MODEL_ARTIFACT_PATH
+                    )
+            self.client.set_terminated(run_id, "FINISHED")
+            return run_id
+        except Exception:
+            self.client.set_terminated(run_id, "FAILED")
+            raise
+
+    def _model_runs(self):
+        experiment = self._experiment()
+        if experiment is None:
+            return []
+        runs, token = [], None
+        while True:
+            page = self.client.search_runs(
+                [experiment.experiment_id],
+                filter_string="attributes.status = 'FINISHED'",
+                order_by=["attributes.start_time DESC", "attributes.run_id ASC"],
+                max_results=100,
+                page_token=token,
+            )
+            for run in page:
+                with self._artifact_context():
+                    artifacts = self.client.list_artifacts(run.info.run_id)
+                if any(item.path == MODEL_ARTIFACT_PATH and item.is_dir for item in artifacts):
+                    runs.append(run)
+            token = page.token
+            if not token:
+                return runs
 
     @staticmethod
-    def _run_order(run: Run) -> tuple[bool, float, int]:
-        has_all_metrics = all(
-            key in run.data.metrics for key in REQUIRED_VALIDATION_METRICS
-        )
-        rmse = run.data.metrics.get("rmse")
-        return (
-            not has_all_metrics,
-            float("inf") if rmse is None else rmse,
-            -run.info.start_time,
+    def _provenance(run):
+        try:
+            value = json.loads(run.data.params.get("provenance", "null"))
+            return value if isinstance(value, dict) and valid_manifest(value) else None
+        except (TypeError, ValueError):
+            return None
+
+    @classmethod
+    def _eligible(cls, run):
+        provenance = cls._provenance(run)
+        return bool(
+            provenance
+            and valid_metrics(run.data.metrics)
+            and run.data.params.get("metrics_provenance") == "measured_validation_split"
+            and run.data.params.get("cohort_id") == provenance["cohort_id"]
+            and run.data.params.get("synthetic_data")
+            == str(provenance["data_kind"] == "synthetic").lower()
         )
 
-    def _best_model_run(self) -> Optional[Run]:
-        runs = self._model_runs()
+    @staticmethod
+    def _run_order(run):
+        return (run.data.metrics["rmse"], -run.info.start_time, run.info.run_id)
+
+    def _checked_run(self, run_id):
+        run = self.client.get_run(run_id)
+        if run.info.experiment_id != self.experiment_id or run.info.status != "FINISHED":
+            raise ModelUnavailable("Requested run is not finished in the configured experiment")
+        return run
+
+    def _best_model_run(self):
+        if self.run_id:
+            run = self._checked_run(self.run_id)
+            if not self._eligible(run):
+                raise ModelUnavailable(
+                    "Pinned run lacks verified lifecycle evidence; retrain before serving"
+                )
+            if self.cohort_id and self._provenance(run)["cohort_id"] != self.cohort_id:
+                raise ModelUnavailable("Pinned run is outside the configured evaluation cohort")
+            return run
+        runs = [run for run in self._model_runs() if self._eligible(run)]
+        if self.cohort_id:
+            runs = [run for run in runs if self._provenance(run)["cohort_id"] == self.cohort_id]
+        cohorts = {self._provenance(run)["cohort_id"] for run in runs}
+        if len(cohorts) > 1:
+            raise ModelUnavailable(
+                "Multiple evaluation cohorts exist; set TAXI_MODEL_COHORT_ID or TAXI_MODEL_RUN_ID"
+            )
         return min(runs, key=self._run_order) if runs else None
 
-    async def load_best_model(self) -> Optional[Any]:
-        """Load the complete model/preprocessing artifact from the selected run."""
-        run = self._best_model_run()
-        if run is None:
-            return None
-        mlflow.set_tracking_uri(self.tracking_uri)
-        return mlflow.sklearn.load_model(
-            f"runs:/{run.info.run_id}/{MODEL_ARTIFACT_PATH}"
-        )
-
-    async def get_model_info(self) -> Optional[Dict[str, Any]]:
-        """Return only metadata and metrics stored with the selected model artifact."""
-        run = self._best_model_run()
-        if run is None:
-            return None
-
-        stored_metrics = run.data.metrics
-        has_all_metrics = all(
-            key in stored_metrics for key in REQUIRED_VALIDATION_METRICS
-        )
+    def _info(self, run):
+        eligible = self._eligible(run)
         try:
             features = json.loads(run.data.params.get("features", "[]"))
-        except json.JSONDecodeError:
+        except (TypeError, ValueError):
             features = []
-
         return {
             "run_id": run.info.run_id,
+            "artifact_uri": f"runs:/{run.info.run_id}/{MODEL_ARTIFACT_PATH}",
             "model_type": run.data.params.get("model_type", "NOT_AVAILABLE"),
-            "metrics_status": "MEASURED" if has_all_metrics else "NOT_AVAILABLE",
-            "metrics_provenance": (
-                run.data.params.get("metrics_provenance")
-                if has_all_metrics
-                else "NOT_AVAILABLE"
-            ),
-            "rmse": stored_metrics.get("rmse") if has_all_metrics else None,
-            "mae": stored_metrics.get("mae") if has_all_metrics else None,
-            "r2_score": stored_metrics.get("r2_score") if has_all_metrics else None,
+            "metrics_status": "MEASURED" if eligible else "NOT_AVAILABLE",
+            "metrics_provenance": "measured_validation_split" if eligible else "NOT_AVAILABLE",
+            **{
+                key: float(run.data.metrics[key]) if eligible else None
+                for key in VALIDATION_METRICS
+            },
             "features": features if isinstance(features, list) else [],
+            "provenance": self._provenance(run),
+            "selection_status": "ELIGIBLE" if eligible else "LEGACY_OR_INVALID",
             "created_at": datetime.fromtimestamp(
                 run.info.start_time / 1000, tz=timezone.utc
             ).isoformat(),
         }
-    async def predict(self, features: TripFeatures) -> Optional[Prediction]:
-        """Predict without inventing confidence evidence."""
+
+    async def get_model_info(self, run_id=None):
+        # Explicit historical inspection is safe even when a legacy run cannot serve.
+        run = (
+            self._checked_run(run_id or self.run_id)
+            if (run_id or self.run_id)
+            else self._best_model_run()
+        )
+        return self._info(run) if run else None
+
+    async def load_selected_model(self, run_id=None):
         try:
-            model = await self.load_best_model()
-            if model is None:
-                return None
-            feature_frame = pd.DataFrame(
-                [
-                    {
-                        "distance_km": features.distance_km,
-                        "passenger_count": features.passenger_count,
-                        "vendor_id": features.vendor_id,
-                        "hour_of_day": features.hour_of_day,
-                        "day_of_week": features.day_of_week,
-                        "month": features.month,
-                        "is_weekend": features.is_weekend,
-                        "is_rush_hour": features.is_rush_hour,
-                    }
-                ]
-            )
-            duration_minutes = float(model.predict(feature_frame)[0])
-            return Prediction(
-                predicted_duration_minutes=duration_minutes,
-                confidence_score=None,
-                confidence_status="NOT_AVAILABLE",
-                model_version="latest",
-                features_used=features,
-                created_at=datetime.now(timezone.utc),
-            )
-        except Exception as exc:
-            logger.error("Error en predicción: %s", exc)
-            return None
-    async def log_experiment(
-        self,
-        experiment_name: str,
-        parameters: Dict[str, Any],
-        metrics: Dict[str, float],
-        artifacts: Dict[str, str] = None,
-    ) -> str:
-        """Log de experimento completo"""
-
-        with mlflow.start_run(run_name=experiment_name) as run:
-            mlflow.log_params(parameters)
-            mlflow.log_metrics(metrics)
-
-            if artifacts:
-                for artifact_name, artifact_path in artifacts.items():
-                    mlflow.log_artifact(artifact_path, artifact_name)
-
-            return run.info.run_id
-
-    async def compare_models(self, limit: int = 10) -> pd.DataFrame:
-        """Compara modelos en el experimento"""
-        try:
-            experiment = mlflow.get_experiment_by_name(self.experiment_name)
-            if not experiment:
-                return pd.DataFrame()
-
-            runs = mlflow.search_runs(
-                experiment_ids=[experiment.experiment_id],
-                order_by=["metrics.rmse ASC"],
-                max_results=limit,
-            )
-
-            if runs.empty:
-                return pd.DataFrame()
-
-            # Seleccionar columnas relevantes
-            comparison_columns = [
-                "run_id",
-                "params.model_type",
-                "metrics.rmse",
-                "metrics.mae",
-                "metrics.r2_score",
-                "start_time",
-            ]
-
-            available_columns = [
-                col for col in comparison_columns if col in runs.columns
-            ]
-            result = runs[available_columns].copy()
-
-            # Renombrar columnas para mejor legibilidad
-            column_mapping = {
-                "params.model_type": "model_type",
-                "metrics.rmse": "rmse",
-                "metrics.mae": "mae",
-                "metrics.r2_score": "r2_score",
+            run = self._checked_run(run_id) if run_id else self._best_model_run()
+            if run is None or not self._eligible(run):
+                raise ModelUnavailable("No model with verified lifecycle evidence is available")
+            if self.run_id and run.info.run_id != self.run_id:
+                raise ModelUnavailable("Requested artifact differs from the configured run pin")
+            if self.cohort_id and self._provenance(run)["cohort_id"] != self.cohort_id:
+                raise ModelUnavailable(
+                    "Requested artifact is outside the configured evaluation cohort"
+                )
+            with tempfile.TemporaryDirectory() as directory:
+                with self._artifact_context():
+                    path = self.client.download_artifacts(
+                        run.info.run_id, MODEL_ARTIFACT_PATH, directory
+                    )
+                model = mlflow.sklearn.load_model(path)
+            info = self._info(run)
+            expected = {
+                "provenance": info["provenance"],
+                "metrics": dict(run.data.metrics),
+                "model_type": info["model_type"],
+                "features": info["features"],
+                "raw_columns": RAW_COLUMNS,
             }
+            if getattr(model, "lifecycle_metadata_", None) != expected:
+                raise ModelUnavailable("Artifact and run metadata do not agree")
+            if not isinstance(model.named_steps.get("features"), TripFeatureTransformer):
+                raise ModelUnavailable(
+                    "Artifact does not contain the supported raw-trip transformer"
+                )
+            return LoadedModel(model=model, info=info)
+        except ModelUnavailable:
+            raise
+        except Exception as exc:
+            raise ModelUnavailable("The selected model artifact could not be loaded") from exc
 
-            result = result.rename(columns=column_mapping)
+    async def load_best_model(self):
+        return (await self.load_selected_model()).model
 
-            return result
-
-        except Exception as e:
-            logger.error(f"Error comparando modelos: {e}")
-            return pd.DataFrame()
+    async def compare_models(self, limit=10):
+        # Different cohorts remain visible but are never ranked against each other.
+        records = [self._info(run) for run in self._model_runs()]
+        return pd.DataFrame(records[:limit])
