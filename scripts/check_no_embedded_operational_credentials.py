@@ -17,6 +17,8 @@ SCANNED_SUFFIXES = {
     ".ini",
     ".ipynb",
     ".json",
+    ".md",
+    ".txt",
     ".ps1",
     ".py",
     ".sh",
@@ -29,32 +31,23 @@ PASSWORD_ASSIGNMENT = re.compile(
     r"(?i)(?:[\"']?\b(?:db_|database_|postgres_)?(?:password|passwd|pwd)\b[\"']?)"
     r"\s*(?::|=)\s*[\"']([^\"'\r\n]+)[\"']"
 )
-DATABASE_URL = re.compile(
-    r"(?i)postgres(?:ql)?://[^:\s/\"']+:([^@\s/\"']+)@[^\s/\"']+"
-)
-PASSWORD_DOCUMENTATION = re.compile(
-    r"(?i)\bpassword\b[^:\r\n]{0,12}:\s*`([^`\r\n]+)`"
-)
+DATABASE_URL = re.compile(r"(?i)postgres(?:ql)?://[^:\s/\"']+:([^@\s/\"']+)@[^\s/\"']+")
+PASSWORD_DOCUMENTATION = re.compile(r"(?i)\bpassword\b[^:\r\n]{0,12}:\s*`([^`\r\n]+)`")
 RDS_HOST = re.compile(r"(?i)\b[a-z0-9.-]+\.rds\.amazonaws\.com\b")
 
-PLACEHOLDER_MARKERS = (
-    "${",
-    "{",
-    "}",
-    "<",
-    ">",
-    "[",
-    "]",
+PLACEHOLDER_VALUES = {
     "changeme",
     "change_me",
+    "change_me_local_only",
     "dummy",
     "example",
-    "invalid",
     "password_from_env",
     "placeholder",
     "redacted",
-    "your_",
     "xxxxx",
+}
+ENV_PLACEHOLDER = re.compile(
+    r"(?:\$\{[A-Z_][A-Z0-9_]*(?::\?[^{}]*)?\}|\{[A-Z_][A-Z0-9_]*\}|<[A-Z_][A-Z0-9_]*>)"
 )
 
 
@@ -67,7 +60,11 @@ class Finding:
 
 def _is_placeholder(value: str) -> bool:
     normalized = value.strip().lower()
-    return not normalized or any(marker in normalized for marker in PLACEHOLDER_MARKERS)
+    return (
+        not normalized
+        or normalized in PLACEHOLDER_VALUES
+        or bool(ENV_PLACEHOLDER.fullmatch(value.strip()))
+    )
 
 
 def scan_text(text: str, path: str) -> list[Finding]:
@@ -82,7 +79,9 @@ def scan_text(text: str, path: str) -> list[Finding]:
                 if not _is_placeholder(match.group(1)):
                     findings.append(Finding(path, line_number, rule))
         for match in RDS_HOST.finditer(line):
-            if not _is_placeholder(match.group(0)):
+            if not re.fullmatch(
+                r"[a-z0-9-]+\.xxxxx\.[a-z0-9-]+\.rds\.amazonaws\.com", match.group(0), re.IGNORECASE
+            ):
                 findings.append(Finding(path, line_number, "operational-rds-host"))
     return findings
 
@@ -91,6 +90,25 @@ def _notebook_source(path: Path) -> Iterable[tuple[str, int]]:
     notebook = json.loads(path.read_text(encoding="utf-8"))
     for cell_number, cell in enumerate(notebook.get("cells", []), start=1):
         yield "".join(cell.get("source", [])), cell_number
+        for output in cell.get("outputs", []):
+            # Parse text leaves, not JSON escapes, including errors and rich text MIME data.
+            yield "\n".join(_text_leaves(output)), cell_number
+
+
+def _text_leaves(value):
+    if isinstance(value, str):
+        yield value
+    elif isinstance(value, dict):
+        for key, item in value.items():
+            if key not in {"image/png", "image/jpeg", "application/pdf"}:
+                yield from _text_leaves(item)
+    elif isinstance(value, list):
+        # Notebook text is often stored as a list of strings.
+        if all(isinstance(item, str) for item in value):
+            yield "".join(value)
+        else:
+            for item in value:
+                yield from _text_leaves(item)
 
 
 def _tracked_paths(root: Path) -> list[Path]:
@@ -113,13 +131,9 @@ def scan_repository(root: Path) -> list[Finding]:
             if path.suffix.lower() == ".ipynb":
                 for source, cell_number in _notebook_source(path):
                     for finding in scan_text(source, relative_path):
-                        findings.append(
-                            Finding(relative_path, cell_number, f"cell:{finding.rule}")
-                        )
+                        findings.append(Finding(relative_path, cell_number, f"cell:{finding.rule}"))
             else:
-                findings.extend(
-                    scan_text(path.read_text(encoding="utf-8"), relative_path)
-                )
+                findings.extend(scan_text(path.read_text(encoding="utf-8"), relative_path))
         except (UnicodeDecodeError, json.JSONDecodeError) as exc:
             findings.append(Finding(relative_path, 0, f"unscannable:{type(exc).__name__}"))
     return findings

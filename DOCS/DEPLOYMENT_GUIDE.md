@@ -518,7 +518,7 @@ jobs:
       "environment": [
         {
           "name": "DATABASE_URL",
-          "value": "postgresql://user:pass@rds-endpoint:5432/taxi_duration"
+          "value": "postgresql://user:${DATABASE_PASSWORD}@rds-endpoint:5432/taxi_duration"
         },
         {
           "name": "MLFLOW_TRACKING_URI",
