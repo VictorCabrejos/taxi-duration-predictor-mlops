@@ -8,6 +8,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import Pipeline
 import xgboost as xgb
 import pandas as pd
 import numpy as np
@@ -35,7 +36,7 @@ class SklearnModelsAdapter(ModelTrainer):
     """Adapter para modelos de scikit-learn y XGBoost"""
 
     def __init__(self):
-        self.scalers = {}  # Para almacenar scalers por modelo si es necesario
+        pass
 
     def get_available_models(self) -> Dict[str, Any]:
         """Retorna diccionario de modelos disponibles"""
@@ -148,8 +149,11 @@ class SklearnModelsAdapter(ModelTrainer):
                 )
 
             config = models_config[model_name]
-            model = config["model"]
-            requires_scaling = config["requires_scaling"]
+            estimator = config["model"]
+            preprocessor = StandardScaler() if config["requires_scaling"] else "passthrough"
+            model = Pipeline(
+                steps=[("preprocessor", preprocessor), ("estimator", estimator)]
+            )
 
             logger.info(f"Entrenando modelo: {model_name}")
 
@@ -158,23 +162,13 @@ class SklearnModelsAdapter(ModelTrainer):
                 X, y, test_size=test_size, random_state=42
             )
 
-            # Aplicar scaling si es necesario
-            if requires_scaling:
-                scaler = StandardScaler()
-                X_train_scaled = scaler.fit_transform(X_train)
-                X_test_scaled = scaler.transform(X_test)
-                self.scalers[model_name] = scaler
-            else:
-                X_train_scaled = X_train
-                X_test_scaled = X_test
-
-            # Entrenar modelo
+            # Entrenar un artefacto único que incluye todo el preprocesamiento.
             start_time = datetime.now()
-            model.fit(X_train_scaled, y_train)
+            model.fit(X_train, y_train)
             training_time = (datetime.now() - start_time).total_seconds()
 
             # Predicciones
-            y_pred = model.predict(X_test_scaled)
+            y_pred = model.predict(X_test)
 
             # Calcular métricas
             metrics = self._calculate_metrics(y_test, y_pred)
@@ -192,7 +186,6 @@ class SklearnModelsAdapter(ModelTrainer):
                 "metrics": metrics,
                 "hyperparams": config["params"],
                 "features": list(X.columns),
-                "scaler": self.scalers.get(model_name),
             }
 
         except Exception as e:
@@ -257,7 +250,8 @@ class SklearnModelsAdapter(ModelTrainer):
                 ]
             )
 
-            # Aplicar scaling si es necesario
+            # Compatibilidad con artefactos históricos. Los nuevos artefactos son
+            # Pipelines autocontenidos y no requieren estado externo.
             if scaler is not None:
                 feature_array = scaler.transform(feature_array)
 
@@ -275,12 +269,17 @@ class SklearnModelsAdapter(ModelTrainer):
     ) -> Dict[str, float]:
         """Obtiene importancia de features si el modelo lo soporta"""
         try:
-            if hasattr(model, "feature_importances_"):
-                importance = model.feature_importances_
+            estimator = (
+                model.named_steps["estimator"]
+                if isinstance(model, Pipeline)
+                else model
+            )
+            if hasattr(estimator, "feature_importances_"):
+                importance = estimator.feature_importances_
                 return dict(zip(feature_names, importance))
-            elif hasattr(model, "coef_"):
+            elif hasattr(estimator, "coef_"):
                 # Para modelos lineales, usar valor absoluto de coeficientes
-                importance = np.abs(model.coef_)
+                importance = np.abs(estimator.coef_)
                 return dict(zip(feature_names, importance))
             else:
                 logger.warning(f"Modelo {type(model)} no soporta feature importance")

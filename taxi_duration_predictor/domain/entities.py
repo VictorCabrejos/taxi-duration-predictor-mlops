@@ -5,6 +5,7 @@ Entidades del dominio siguiendo DDD (Domain Driven Design)
 
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Optional
 
 import numpy as np
 
@@ -159,7 +160,8 @@ class Prediction:
     """Entidad - Representa una predicción del modelo"""
 
     predicted_duration_minutes: float
-    confidence_score: float
+    confidence_score: Optional[float]
+    confidence_status: str
     model_version: str
     features_used: TripFeatures
     created_at: datetime
@@ -170,4 +172,4 @@ class Prediction:
 
     def is_confident(self, threshold: float = 0.8) -> bool:
         """True si la predicción tiene alta confianza"""
-        return self.confidence_score >= threshold
+        return self.confidence_score is not None and self.confidence_score >= threshold

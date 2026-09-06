@@ -133,7 +133,8 @@ class PredictionPipeline:
                 # Create prediction object
                 prediction = Prediction(
                     predicted_duration_minutes=float(prediction_result),
-                    confidence_score=0.8,  # Default confidence
+                    confidence_score=None,
+                    confidence_status="NOT_AVAILABLE",
                     model_version="latest",
                     features_used=features,
                     created_at=datetime.now(),
@@ -145,7 +146,8 @@ class PredictionPipeline:
                 estimated_duration = features.distance_km * 3.5  # ~3.5 minutes per km
                 prediction = Prediction(
                     predicted_duration_minutes=estimated_duration,
-                    confidence_score=0.5,  # Lower confidence for fallback
+                    confidence_score=None,
+                    confidence_status="NOT_AVAILABLE",
                     model_version="fallback",
                     features_used=features,
                     created_at=datetime.now(),
@@ -203,6 +205,7 @@ class PredictionPipeline:
                 return {
                     "predicted_duration_minutes": prediction.predicted_duration_minutes,
                     "confidence_score": prediction.confidence_score,
+                    "confidence_status": prediction.confidence_status,
                     "model_version": prediction.model_version,
                     "features_used": {
                         "distance_km": prediction.features_used.distance_km,
@@ -350,7 +353,7 @@ async def predict_single_trip():
         print(
             f"🚕 Predicción de duración: {prediction.predicted_duration_minutes:.1f} minutos"
         )
-        print(f"   Confianza: {prediction.confidence_score:.2f}")
+        print(f"   Confianza: {prediction.confidence_status}")
         print(f"   Distancia: {prediction.features_used.distance_km:.1f} km")
     else:
         print("❌ Error en predicción")
