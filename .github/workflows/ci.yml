@@ -125,7 +125,7 @@ jobs:
           docker network create taxi-lifecycle-ci
           docker run --name taxi-tracking-ci --detach --network taxi-lifecycle-ci \
             --publish 5000:5000 \
-            --env MLFLOW_SERVER_ALLOWED_HOSTS=taxi-tracking-ci,localhost,127.0.0.1 \
+            --env MLFLOW_SERVER_ALLOWED_HOSTS=taxi-tracking-ci:5000,localhost:5000,127.0.0.1:5000 \
             taxi-duration-api:ci mlflow server --host 0.0.0.0 --port 5000 \
             --backend-store-uri sqlite:////app/data/tracking.db \
             --serve-artifacts --artifacts-destination /app/data/artifacts

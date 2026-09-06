@@ -374,6 +374,17 @@ def test_training_result_mutation_does_not_relabel_artifact(lifecycle):
         )
 
 
+def test_persisted_format_is_explicit_not_dependency_default(lifecycle, tmp_path):
+    import yaml
+
+    tracker, _, run_id, _, _ = lifecycle
+    with tracker._artifact_context():
+        path = tracker.client.download_artifacts(run_id, "model/MLmodel", str(tmp_path))
+    with open(path, encoding="utf-8") as stream:
+        config = yaml.safe_load(stream)
+    assert config["flavors"]["sklearn"]["serialization_format"] == "cloudpickle"
+
+
 def test_explicit_artifact_load_cannot_override_serving_policy(lifecycle, monkeypatch):
     tracker, _, run_id, _, _ = lifecycle
     monkeypatch.setattr(tracker, "cohort_id", "different-cohort")

@@ -10,7 +10,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 30s
@@ -37,11 +37,11 @@ services:
       - --port
       - "5000"
     environment:
-      MLFLOW_SERVER_ALLOWED_HOSTS: mlflow,localhost,127.0.0.1
+      MLFLOW_SERVER_ALLOWED_HOSTS: mlflow:5000,localhost:5000,127.0.0.1:5000
     volumes:
       - mlflow_data:/app/data
     ports:
-      - "5000:5000"
+      - "127.0.0.1:5000:5000"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
       interval: 30s
@@ -62,7 +62,7 @@ services:
       TAXI_MODEL_COHORT_ID: ${TAXI_MODEL_COHORT_ID:-}
       TAXI_MODEL_RUN_ID: ${TAXI_MODEL_RUN_ID:-}
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -88,7 +88,7 @@ services:
       MLFLOW_TRACKING_URI: http://mlflow:5000
       API_BASE_URL: http://api:8000
     ports:
-      - "8506:8506"
+      - "127.0.0.1:8506:8506"
     depends_on:
       api:
         condition: service_healthy

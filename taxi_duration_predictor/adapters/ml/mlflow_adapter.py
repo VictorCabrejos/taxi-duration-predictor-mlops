@@ -120,7 +120,11 @@ class MLflowAdapter:
                 self.client.log_metric(run_id, key, float(value))
             with tempfile.TemporaryDirectory() as directory:
                 model_path = Path(directory) / MODEL_ARTIFACT_PATH
-                mlflow.sklearn.save_model(model, model_path)
+                # Explicit cross-version format for this trusted operator-owned artifact.
+                # Never load models from untrusted stores: cloudpickle can execute code.
+                mlflow.sklearn.save_model(
+                    model, model_path, serialization_format="cloudpickle"
+                )
                 with self._artifact_context():
                     self.client.log_artifacts(
                         run_id, str(model_path), artifact_path=MODEL_ARTIFACT_PATH
