@@ -21,6 +21,19 @@ uvicorn taxi_duration_predictor.api.main:app --host 127.0.0.1 --port 8000
 
 On PowerShell, replace `mkdir -p data` with `New-Item -ItemType Directory -Force data`. Bootstrap prints the exact `best_run_id`, `cohort_id`, measured validation metrics and synthetic provenance. Its raw-trip generator, random seed, target formula and MIT ownership are in `pipeline/train.py`.
 
+The compatibility launcher requires an explicit operation: `python main.py bootstrap`
+delegates to that synthetic training module; `python main.py api` serves only the API
+on loopback. It never auto-trains, creates dummy models, or claims model readiness.
+Failed child commands retain their exit code. Bare `python main.py` shows usage.
+
+Optional UI: `streamlit run observability/dashboards/enhanced_dashboard.py`.
+Set `API_BASE_URL` if the API is not at `http://127.0.0.1:8000`. This API-only
+consumer shows the exact response's model evidence and unavailable confidence;
+it does not query another model, rank incompatible runs, or substitute a heuristic
+when prediction fails. Previous multi-service launcher/dashboard implementations
+remain in Git history, not active runtime paths. The obsolete unified Dockerfile
+and simple Compose topology were removed; use `deployment/docker-compose.yml`.
+
 ```bash
 curl http://127.0.0.1:8000/api/v1/predict/ \
   -H 'Content-Type: application/json' \

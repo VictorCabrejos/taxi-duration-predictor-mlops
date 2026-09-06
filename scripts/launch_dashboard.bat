@@ -1,13 +1,5 @@
 @echo off
-REM 🚀 MLOps Dashboard Launcher - Windows
-REM Enhanced Taxi Duration Predictor Dashboard
-
+REM Use the active Python environment installed per README.
 cd /d "%~dp0\.."
-
-echo 🚀 Starting Enhanced MLOps Dashboard...
-echo 📊 Location: observability/dashboards/enhanced_dashboard.py
-echo 🌐 URL: http://localhost:8503
-echo.
-
-REM Activate conda environment and launch enhanced dashboard
-call conda activate ds_env && streamlit run observability/dashboards/enhanced_dashboard.py --server.port 8503
+python -m streamlit run observability/dashboards/enhanced_dashboard.py --server.port 8506 --server.address 127.0.0.1
+exit /b %errorlevel%

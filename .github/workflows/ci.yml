@@ -28,7 +28,7 @@ jobs:
       - name: Install unit-test dependencies
         run: python -m pip install -e ".[dev]"
       - name: Fatal lint checks
-        run: python -m ruff check --select F taxi_duration_predictor tests/unit tests/conftest.py
+        run: python -m ruff check --select F main.py taxi_duration_predictor observability/dashboards/enhanced_dashboard.py tests/unit tests/api tests/integration tests/conftest.py
       - name: Unit tests with coverage
         run: python -m pytest tests/unit --cov=taxi_duration_predictor.domain --cov=taxi_duration_predictor.config --cov-report=term-missing
       - name: Compile package
