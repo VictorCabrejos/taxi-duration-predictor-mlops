@@ -36,11 +36,13 @@ def _synthetic_training_data() -> tuple[pd.DataFrame, pd.Series]:
     return features, target
 
 
+def _sqlite_tracking_uri(tmp_path, name: str) -> str:
+    return f"sqlite:///{(tmp_path / name).as_posix()}"
+
+
 def test_train_save_reload_predict_and_model_info_are_artifact_linked(tmp_path) -> None:
-    tracking_root = tmp_path / "mlruns"
-    tracking_root.mkdir()
     tracker = MLflowAdapter(
-        tracking_uri=tracking_root.as_uri(),
+        tracking_uri=_sqlite_tracking_uri(tmp_path, "lifecycle.db"),
         experiment_name="lifecycle-regression",
     )
     features, target = _synthetic_training_data()
@@ -86,10 +88,8 @@ def test_train_save_reload_predict_and_model_info_are_artifact_linked(tmp_path) 
 def test_incomplete_artifact_metrics_are_explicitly_unavailable(
     tmp_path, monkeypatch
 ) -> None:
-    tracking_root = tmp_path / "empty-mlruns"
-    tracking_root.mkdir()
     tracker = MLflowAdapter(
-        tracking_uri=tracking_root.as_uri(),
+        tracking_uri=_sqlite_tracking_uri(tmp_path, "missing-metrics.db"),
         experiment_name="missing-metrics-regression",
     )
     with pytest.raises(ValueError, match="Missing measured validation metrics"):
