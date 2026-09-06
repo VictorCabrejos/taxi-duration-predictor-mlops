@@ -17,6 +17,7 @@ sys.path.append(str(project_root))
 from ..adapters.database.data_adapter import PostgreSQLAdapter
 from ..adapters.ml.sklearn_adapter import SklearnModelsAdapter
 from ..adapters.ml.mlflow_adapter import MLflowAdapter
+from ..config import Config
 
 # Configurar logging
 logging.basicConfig(
@@ -246,22 +247,11 @@ async def main():
         logger.info("🤖 Ejecutando entrenamiento bootstrap...")
         return await bootstrap_training()
 
-    # Configuración de base de datos AWS RDS
-    db_config = {
-        "host": "taxi-duration-db.ckj7uy651uld.us-east-1.rds.amazonaws.com",
-        "port": 5432,
-        "database": "postgres",
-        "user": "taxiuser",
-        "password": "TaxiDB2025!",
-    }
-
-    # Crear connection string para PostgreSQL
-    connection_string = f"postgresql://{db_config['user']}:{db_config['password']}@{db_config['host']}:{db_config['port']}/{db_config['database']}"
-
-    # Configuración de MLflow
+    runtime_config = Config()
+    connection_string = runtime_config.require_database_url()
     mlflow_config = {
-        "tracking_uri": "sqlite:///data/mlflow.db",
-        "experiment_name": "taxi_duration_prediction",
+        "tracking_uri": runtime_config.mlflow_tracking_uri,
+        "experiment_name": runtime_config.mlflow_experiment_name,
     }
 
     # Crear y ejecutar pipeline
@@ -282,130 +272,63 @@ async def main():
 
 
 async def bootstrap_training():
-    """Entrenamiento bootstrap con datos sintéticos"""
-    try:
-        import mlflow
-        import mlflow.sklearn
-        import pandas as pd
-        import numpy as np
-        from sklearn.ensemble import RandomForestRegressor
-        from sklearn.linear_model import LinearRegression
-        from sklearn.model_selection import train_test_split
-        from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+    """Entrena artefactos reproducibles con datos sintéticos declarados."""
+    import numpy as np
+    import pandas as pd
 
-        logger.info("🎯 Creando datos sintéticos para bootstrap...")
-
-        # Configurar MLflow
-        mlflow.set_tracking_uri("sqlite:///data/mlflow.db")
-        mlflow.set_experiment("taxi_duration_prediction")
-
-        # Generar datos sintéticos realistas
-        n_samples = 5000
-        np.random.seed(42)
-
-        # Features realistas
-        data = {
-            "distance_km": np.random.uniform(0.5, 50, n_samples),
-            "passenger_count": np.random.choice(
-                [1, 2, 3, 4, 5, 6], n_samples, p=[0.7, 0.15, 0.08, 0.04, 0.02, 0.01]
+    logger.info("Creando datos sintéticos para bootstrap...")
+    sample_count = 5000
+    rng = np.random.default_rng(42)
+    features = pd.DataFrame(
+        {
+            "distance_km": rng.uniform(0.5, 50, sample_count),
+            "passenger_count": rng.choice(
+                [1, 2, 3, 4, 5, 6],
+                sample_count,
+                p=[0.7, 0.15, 0.08, 0.04, 0.02, 0.01],
             ),
-            "vendor_id": np.random.choice([1, 2], n_samples),
-            "hour_of_day": np.random.randint(0, 24, n_samples),
-            "day_of_week": np.random.randint(0, 7, n_samples),
-            "month": np.random.randint(1, 13, n_samples),
-            "is_weekend": np.random.choice([0, 1], n_samples, p=[0.71, 0.29]),
-            "is_rush_hour": np.random.choice([0, 1], n_samples, p=[0.6, 0.4]),
+            "vendor_id": rng.choice([1, 2], sample_count),
+            "hour_of_day": rng.integers(0, 24, sample_count),
+            "day_of_week": rng.integers(0, 7, sample_count),
+            "month": rng.integers(1, 13, sample_count),
+            "is_weekend": rng.choice([0, 1], sample_count, p=[0.71, 0.29]),
+            "is_rush_hour": rng.choice([0, 1], sample_count, p=[0.6, 0.4]),
         }
+    )
+    target = (
+        5
+        + features["distance_km"] * 2
+        + features["passenger_count"] * 0.5
+        + features["is_rush_hour"] * 5
+        + rng.normal(0, 2, sample_count)
+    )
 
-        df = pd.DataFrame(data)
-
-        # Target realista basado en distancia + ruido
-        df["duration_minutes"] = (
-            5  # base time
-            + df["distance_km"] * 2  # speed factor
-            + df["passenger_count"] * 0.5  # loading time
-            + df["is_rush_hour"] * 5  # traffic
-            + np.random.normal(0, 2, n_samples)  # noise
+    runtime_config = Config()
+    trainer = SklearnModelsAdapter()
+    tracker = MLflowAdapter(
+        tracking_uri=runtime_config.mlflow_tracking_uri,
+        experiment_name=runtime_config.mlflow_experiment_name,
+    )
+    results = []
+    for model_name in ("RandomForest", "LinearRegression"):
+        result = await trainer.train_model(model_name, features, target)
+        result["run_id"] = await tracker.save_model(
+            model=result["model"],
+            model_name=result["model_name"],
+            metrics=result["metrics"],
+            features=result["features"],
+            hyperparams=result["hyperparams"],
         )
+        results.append(result)
 
-        # Ensure positive values
-        df["duration_minutes"] = np.maximum(df["duration_minutes"], 1)
-
-        logger.info(f"📊 Datos sintéticos creados: {df.shape}")
-        logger.info(f"   Duración promedio: {df['duration_minutes'].mean():.1f} min")
-        logger.info(f"   Distancia promedio: {df['distance_km'].mean():.1f} km")
-
-        X = df.drop("duration_minutes", axis=1)
-        y = df["duration_minutes"]
-
-        # Modelos a entrenar
-        models = [
-            ("RandomForest", RandomForestRegressor(n_estimators=50, random_state=42)),
-            ("LinearRegression", LinearRegression()),
-        ]
-
-        results = []
-
-        for model_name, model in models:
-            with mlflow.start_run(run_name=f"bootstrap_{model_name}"):
-                logger.info(f"🔄 Entrenando {model_name}...")
-
-                # Split data
-                X_train, X_test, y_train, y_test = train_test_split(
-                    X, y, test_size=0.2, random_state=42
-                )
-
-                # Train model
-                model.fit(X_train, y_train)
-
-                # Predictions
-                y_pred = model.predict(X_test)
-
-                # Metrics
-                rmse = np.sqrt(mean_squared_error(y_test, y_pred))
-                mae = mean_absolute_error(y_test, y_pred)
-                r2 = r2_score(y_test, y_pred)
-
-                # Log parameters
-                mlflow.log_param("model_type", model_name)
-                mlflow.log_param("bootstrap", True)
-                mlflow.log_param("train_size", len(X_train))
-                mlflow.log_param("test_size", len(X_test))
-                mlflow.log_param("synthetic_data", True)
-
-                # Log metrics
-                mlflow.log_metric("rmse", rmse)
-                mlflow.log_metric("mae", mae)
-                mlflow.log_metric("r2_score", r2)
-
-                # Log model
-                mlflow.sklearn.log_model(model, "model")
-
-                results.append(
-                    {"model_name": model_name, "rmse": rmse, "mae": mae, "r2": r2}
-                )
-
-                logger.info(f"✅ {model_name} completado:")
-                logger.info(f"   RMSE: {rmse:.2f} min")
-                logger.info(f"   MAE: {mae:.2f} min")
-                logger.info(f"   R²: {r2:.3f}")
-
-        # Find best model
-        best_model = min(results, key=lambda x: x["rmse"])
-        logger.info(f"🏆 Mejor modelo bootstrap: {best_model['model_name']}")
-        logger.info(f"   RMSE: {best_model['rmse']:.2f} min")
-
-        return {
-            "status": "success",
-            "models_trained": len(results),
-            "best_model": best_model["model_name"],
-            "best_rmse": best_model["rmse"],
-            "synthetic_data": True,
-        }
-
-    except Exception as e:
-        logger.error(f"❌ Error en entrenamiento bootstrap: {e}")
-        raise
+    best_model = min(results, key=lambda result: result["metrics"]["rmse"])
+    return {
+        "status": "success",
+        "models_trained": len(results),
+        "best_model": best_model["model_name"],
+        "best_rmse": best_model["metrics"]["rmse"],
+        "synthetic_data": True,
+    }
 
 
 if __name__ == "__main__":

@@ -5,7 +5,7 @@ Controlador FastAPI siguiendo hexagonal architecture
 
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, ConfigDict, Field
-from typing import Dict, Any, Optional
+from typing import Any, Dict, List, Literal, Optional
 from datetime import datetime
 import logging
 
@@ -66,7 +66,8 @@ class PredictionResponse(BaseModel):
         json_schema_extra={
             "example": {
                 "predicted_duration_minutes": 35.2,
-                "confidence_score": 0.85,
+                "confidence_score": None,
+                "confidence_status": "NOT_AVAILABLE",
                 "distance_km": 18.5,
                 "model_version": "latest",
                 "features_used": {
@@ -83,7 +84,12 @@ class PredictionResponse(BaseModel):
     predicted_duration_minutes: float = Field(
         ..., description="Duración predicha en minutos"
     )
-    confidence_score: float = Field(..., description="Score de confianza")
+    confidence_score: Optional[float] = Field(
+        ..., description="Confianza medida; null cuando no existe evidencia calibrada"
+    )
+    confidence_status: Literal["MEASURED", "NOT_AVAILABLE"] = Field(
+        ..., description="Procedencia de la confianza"
+    )
     distance_km: float = Field(..., description="Distancia del viaje en km")
     model_version: str = Field(..., description="Versión del modelo usado")
     features_used: Dict[str, Any] = Field(
@@ -105,11 +111,16 @@ class HealthResponse(BaseModel):
 class ModelInfoResponse(BaseModel):
     """Schema para información del modelo"""
 
+    run_id: str = Field(..., description="Run de MLflow que contiene el artefacto")
     model_type: str = Field(..., description="Tipo de modelo")
-    rmse: float = Field(..., description="RMSE del modelo")
-    mae: float = Field(..., description="MAE del modelo")
-    r2_score: float = Field(..., description="R² score del modelo")
-    features: str = Field(..., description="Features usadas")
+    metrics_status: Literal["MEASURED", "NOT_AVAILABLE"] = Field(
+        ..., description="Disponibilidad de métricas medidas"
+    )
+    metrics_provenance: str = Field(..., description="Procedencia de las métricas")
+    rmse: Optional[float] = Field(None, description="RMSE medido")
+    mae: Optional[float] = Field(None, description="MAE medido")
+    r2_score: Optional[float] = Field(None, description="R² medido")
+    features: List[str] = Field(..., description="Features usadas")
     created_at: datetime = Field(..., description="Fecha de creación")
 
 
@@ -164,6 +175,7 @@ async def predict_trip_duration(
         return PredictionResponse(
             predicted_duration_minutes=prediction.predicted_duration_minutes,
             confidence_score=prediction.confidence_score,
+            confidence_status=prediction.confidence_status,
             distance_km=prediction.features_used.distance_km,
             model_version=prediction.model_version,
             features_used={
@@ -226,7 +238,10 @@ async def model_info(pipeline: PredictionPipeline = Depends(get_prediction_pipel
             raise HTTPException(status_code=404, detail="No hay modelo disponible")
 
         return ModelInfoResponse(
+            run_id=model_info["run_id"],
             model_type=model_info["model_type"],
+            metrics_status=model_info["metrics_status"],
+            metrics_provenance=model_info["metrics_provenance"],
             rmse=model_info["rmse"],
             mae=model_info["mae"],
             r2_score=model_info["r2_score"],

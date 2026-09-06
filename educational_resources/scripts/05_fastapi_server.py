@@ -8,12 +8,13 @@ import mlflow
 import mlflow.sklearn
 from mlflow.tracking import MlflowClient
 import numpy as np
+import pandas as pd
 import asyncpg
 from datetime import datetime
 import logging
 import os
 import uvicorn
-from typing import Optional
+from typing import Literal, Optional
 import warnings
 
 warnings.filterwarnings("ignore")
@@ -109,7 +110,10 @@ class TripPredictionResponse(BaseModel):
     distance_km: float = Field(..., description="Distancia calculada en kilómetros")
     model_type: str = Field(..., description="Tipo de modelo usado")
     model_version: str = Field(..., description="Versión del modelo")
-    confidence_score: float = Field(..., description="Score de confianza")
+    confidence_score: Optional[float] = Field(
+        ..., description="Confianza medida; null cuando no está disponible"
+    )
+    confidence_status: Literal["MEASURED", "NOT_AVAILABLE"]
     features_used: dict = Field(
         ..., description="Features utilizadas para la predicción"
     )
@@ -197,20 +201,24 @@ async def load_best_model():
         model_uri = f"runs:/{run_id}/model"
         loaded_model = mlflow.sklearn.load_model(model_uri)
 
-        # Guardar metadata
+        required_metrics = ("rmse", "mae", "r2_score")
+        metrics_available = all(
+            metric in best_run.data.metrics for metric in required_metrics
+        )
         model_metadata = {
             "run_id": run_id,
-            "model_type": best_run.data.params.get("model_type", "Unknown"),
-            "rmse": float(best_run.data.metrics.get("rmse", 0)),
-            "mae": float(best_run.data.metrics.get("mae", 0)),
-            "r2_score": float(best_run.data.metrics.get("r2_score", 0)),
+            "model_type": best_run.data.params.get("model_type", "NOT_AVAILABLE"),
+            "metrics_status": "MEASURED" if metrics_available else "NOT_AVAILABLE",
+            "rmse": best_run.data.metrics.get("rmse") if metrics_available else None,
+            "mae": best_run.data.metrics.get("mae") if metrics_available else None,
+            "r2_score": (
+                best_run.data.metrics.get("r2_score") if metrics_available else None
+            ),
             "train_size": int(best_run.data.params.get("train_size", 0)),
             "loaded_at": datetime.now().isoformat(),
         }
 
-        logger.info(
-            f"✅ Modelo cargado: {model_metadata['model_type']} (RMSE: {model_metadata['rmse']:.2f})"
-        )
+        logger.info("✅ Modelo cargado: %s", model_metadata["model_type"])
         return True
 
     except Exception as e:
@@ -299,17 +307,14 @@ async def predict_trip_duration(request: TripPredictionRequest):
         features = engineer_features(request)
 
         # 2. Preparar datos para predicción
-        feature_array = np.array([[features[col] for col in model_features]])
+        feature_array = pd.DataFrame(
+            [[features[col] for col in model_features]], columns=model_features
+        )
 
         # 3. Hacer predicción
         prediction = loaded_model.predict(feature_array)[0]
 
-        # 4. Calcular confidence score (simplificado)
-        confidence = 0.85 if not features["is_rush_hour"] else 0.75
-        if features["distance_km"] > 50:  # Viajes muy largos tienen menos confianza
-            confidence *= 0.9
-
-        # 5. Log de la predicción (para monitoring futuro)
+        # 4. Log de la predicción (para monitoring futuro)
         logger.info(
             f"Predicción: {prediction:.2f} min, Distancia: {features['distance_km']:.2f} km"
         )
@@ -319,7 +324,8 @@ async def predict_trip_duration(request: TripPredictionRequest):
             distance_km=round(features["distance_km"], 2),
             model_type=model_metadata["model_type"],
             model_version=model_metadata["run_id"][:8],
-            confidence_score=round(confidence, 3),
+            confidence_score=None,
+            confidence_status="NOT_AVAILABLE",
             features_used=features,
             prediction_timestamp=datetime.now(),
         )

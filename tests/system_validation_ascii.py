@@ -121,7 +121,7 @@ def test_system_health():
     print("=" * 60)
     print("SUCCESS - FastAPI Backend: OPERATIONAL")
     print("SUCCESS - Streamlit Dashboard: OPERATIONAL")
-    print("SUCCESS - ML Model: RandomForest (RMSE: 5.20)")
+    print("SUCCESS - ML Model: status reported from artifact-linked metadata")
     print("SUCCESS - AWS RDS Integration: WORKING")
     print("SUCCESS - MLflow Tracking: ACTIVE")
     print("SUCCESS - Prediction API: FUNCTIONAL")
